@@ -7,11 +7,11 @@
 
 
 gamestate_t *
-GameState_create(board_t *board, bool player1)
+GameState_create(board_t *board, player_t player)
 {
   gamestate_t *gamestate = malloc(sizeof(gamestate_t));
   gamestate->board = board;
-  gamestate->player1_turn = player1;
+  gamestate->player = player;
   gamestate->player1_walls = DEFAULT_WALLS;
   gamestate->player2_walls = DEFAULT_WALLS;
 
@@ -24,7 +24,7 @@ GameState_clone(const gamestate_t *state)
 {
   gamestate_t * newstate = malloc(sizeof(gamestate_t));
   newstate->board = Board_clone(state->board);
-  newstate->player1_turn = state->player1_turn;
+  newstate->player = state->player;
   newstate->player1_walls = state->player1_walls;
   newstate->player2_walls = state->player2_walls;
 
@@ -48,7 +48,7 @@ GameState_print(gamestate_t *state)
 {
   Board_print(state->board);
   term_color("grey");
-  printf("Turn of player: %i\n", (1 - state->player1_turn) + 1);
+  printf("Turn of player: %i\n", state->player);
   printf("Player 1 Walls: %i\n", state->player1_walls);
   printf("Player 2 Walls: %i\n", state->player2_walls);
   term_reset();

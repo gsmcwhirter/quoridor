@@ -16,8 +16,8 @@
 #define WALL_CHARACTER_C 206
 
 typedef enum player {
-  PLAYER1,
-  PLAYER2
+  PLAYER1 = 1,
+  PLAYER2 = 2
 } player_t;
 
 typedef enum walldir {
