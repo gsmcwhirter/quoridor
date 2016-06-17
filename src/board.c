@@ -4,6 +4,7 @@
 #include "board.h"
 #include "term/term.h"
 
+
 board_t *
 Board_create()
 {
@@ -72,7 +73,7 @@ Board_destroy(board_t *board)
 void
 Board_print(board_t *board)
 {
-  term_clear("screen");
+  //term_clear("screen");
   for (int r = WALLS_SIZE - 1; r >= 0; r--)
   {
     for (int c = 0; c < WALLS_SIZE; c++)
@@ -83,7 +84,7 @@ Board_print(board_t *board)
       }
       else if (c == 0)
       {
-        term_color("cyan");
+        term_color(LABEL_COLOR);
         printf("%i ", (r + 1) / 2);
         term_reset();
       }
@@ -93,7 +94,9 @@ Board_print(board_t *board)
       {
         if (*(board->walls + wi))
         {
+          term_bold();
           printf("+");
+          term_reset();
         }
         else
         {
@@ -106,7 +109,9 @@ Board_print(board_t *board)
       {
         if (*(board->walls + wi))
         {
+          term_bold();
           printf("|");
+          term_reset();
         }
         else
         {
@@ -117,7 +122,9 @@ Board_print(board_t *board)
       {
         if (*(board->walls + wi))
         {
+          term_bold();
           printf("---");
+          term_reset();
         }
         else
         {
@@ -128,13 +135,13 @@ Board_print(board_t *board)
       {
         if ((r+1)/2 == board->player1[0] && (c+1)/2 == board->player1[1])
         {
-          term_color("red");
+          term_color(PLAYER_1_COLOR);
           printf(" 1 ");
           term_reset();
         }
         else if ((r+1)/2 == board->player2[0] && (c+1)/2 == board->player2[1])
         {
-          term_color("yellow");
+          term_color(PLAYER_2_COLOR);
           printf(" 2 ");
           term_reset();
         }
@@ -147,7 +154,7 @@ Board_print(board_t *board)
     printf("\n");
   }
 
-  term_color("cyan");
+  term_color(LABEL_COLOR);
   printf("  ");
   for (int c = 0; c < WALLS_SIZE; c++)
   {
@@ -163,4 +170,86 @@ Board_print(board_t *board)
   }
   term_reset();
   printf("\n");
+}
+
+
+void
+Board_addWall(board_t *board, walldir_t walldir, int r, int c)
+{
+  int i1, i2, i3;
+  //horizontal starts at the top-left, vertical at the bottom-right
+  if (walldir == HORIZONTAL)
+  {
+    i1 = (c * 2 - 1) + (r * 2) * WALLS_SIZE;
+    i2 = i1 + 1;
+    i3 = i2 + 1;
+  }
+  else
+  {
+    i1 = (c * 2) + (r * 2 - 1) * WALLS_SIZE;
+    i2 = i1 + WALLS_SIZE;
+    i3 = i2 + WALLS_SIZE;
+  }
+  *(board->walls + i1) = true;
+  *(board->walls + i2) = true;
+  *(board->walls + i3) = true;
+}
+
+
+bool
+Board_validWall(board_t *board, walldir_t walldir, int r, int c)
+{
+  if (c >= 9 || c <= 0) return false;
+  if (r <= 0 || r >= 9) return false;
+
+  int i1, i2, i3;
+  //horizontal starts at the top-left, vertical at the bottom-right
+  if (walldir == HORIZONTAL)
+  {
+    i1 = (c * 2 - 1) + (r * 2) * WALLS_SIZE;
+    i2 = i1 + 1;
+    i3 = i2 + 1;
+  }
+  else
+  {
+    i1 = (c * 2) + (r * 2 - 1) * WALLS_SIZE;
+    i2 = i1 + WALLS_SIZE;
+    i3 = i2 + WALLS_SIZE;
+  }
+
+  return !(*(board->walls + i1) || *(board->walls + i2) || *(board->walls + i3));
+}
+
+
+void
+Board_movePlayer(board_t *board, player_t player, int r, int c)
+{
+  if (player == PLAYER1)
+  {
+    board->player1[0] = r;
+    board->player1[1] = c;
+  }
+  else
+  {
+    board->player2[0] = r;
+    board->player2[1] = c;
+  }
+}
+
+
+bool
+adjacentSquares(int r1, int c1, int r2, int c2)
+{
+  int sum = (r1-r2) + (c1-c2);
+  return ((r1-r2) * (c1-c2) == 0) && (sum == 1 || sum == -1);
+}
+
+
+bool
+Board_wallBetween(board_t *board, int r1, int c1, int r2, int c2)
+{
+  //assumes the squares are next to each other
+  int r = ((r1 * 2) + (r2 * 2)) / 2 - 1;
+  int c = ((c1 * 2) + (c2 * 2)) / 2 - 1;
+  return *(board->walls + (r * WALLS_SIZE + c));
 }
