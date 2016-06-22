@@ -51,7 +51,7 @@ read_line (char *buf, size_t length, FILE *f)
 {
   char *p;
 
-  if (p = fgets (buf, length, f)) {
+  if ((p = fgets (buf, length, f))) {
     size_t last = strlen (buf) - 1;
 
     if (buf[last] == '\n') {
