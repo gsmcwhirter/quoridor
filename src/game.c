@@ -88,7 +88,7 @@ playMove(gamestate_t* state, gamehistory_t *history, char* move)
 
   if (result)
   {
-    gamemove_t *gamemove = GameMove_create(state->player, *(move + 1) - '1' + 1, *(move), dir);
+    gamemove_t *gamemove = GameMove_create(state->player, *(move + 1) - '1' + 1, *(move), dir, move);
     GameState_togglePlayer(state);
     GameHistory_push(history, gamemove);
   }
@@ -120,8 +120,7 @@ repl()
     num_moves = strlen(trim(*(moves))) > 0 ? 1 : 0;
   }
 
-  player_t player = PLAYER1;
-
+  // player_t player = PLAYER1;
   // if (num_moves > 0)
   // {
   //   if (num_moves % 2 == 0)
@@ -138,8 +137,7 @@ repl()
   //   player = PLAYER1;
   // }
 
-  board_t *board = Board_create();
-  gamestate_t *gamestate = GameState_create(board, player);
+  gamestate_t *gamestate = GameState_create(Board_create(), PLAYER1);
 
   for (unsigned int i = 0; i < num_moves; i++)
   {
@@ -173,7 +171,32 @@ repl()
     GameHistory_print(gamehistory);
     printf("\nEnter next move (empty to autocompute): ");
     move = read_line(buffer, 40, stdin);
-    if (strlen(move) > 3 || strlen(move) < 2)
+    if (strlen(move) == 1 && *(move) == 'u')
+    {
+      printf("Undoing last move...");
+      gamehistory_t *lastmove = GameHistory_pop(gamehistory);
+      if (lastmove != NULL)
+      {
+        GameHistory_destroy(lastmove);
+        GameState_destroy(gamestate);
+        gamestate = GameState_create(Board_create(), PLAYER1);
+        gamehistory_t *oldhistory = gamehistory;
+        gamehistory = GameHistory_create();
+        gamehistory_t *curr = oldhistory;
+        while (curr != NULL && curr->move != NULL)
+        {
+          playMove(gamestate, gamehistory, curr->move->srep);
+          curr = curr->next;
+        }
+        GameHistory_destroy(oldhistory);
+        printf("done.\n");
+      }
+      else
+      {
+        printf("nothing to undo.\n");
+      }
+    }
+    else if (strlen(move) > 3 || strlen(move) < 2)
     {
       printf("Invalid move notation.\n");
     }

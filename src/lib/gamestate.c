@@ -48,10 +48,24 @@ GameState_print(gamestate_t *state, player_t as_player)
 {
   Board_print(state->board, as_player);
   printf("\n");
-  term_color("grey");
-  printf("Turn of player: %i\n", state->player);
-  printf("Player 1 Walls: %i\n", state->player1_walls);
-  printf("Player 2 Walls: %i\n", state->player2_walls);
+  // term_color("grey");
+  printf("Turn of player: ");
+  if (state->player == PLAYER1)
+    term_color(PLAYER_1_COLOR);
+  else
+    term_color(PLAYER_2_COLOR);
+  printf("%i", state->player);
+  if (state->player == as_player)
+    printf(" (YOUR TURN)");
+  printf("\n");
+  term_reset();
+  printf("Player 1 Walls: ");
+  term_color(PLAYER_1_COLOR);
+  printf("%i\n", state->player1_walls);
+  term_reset();
+  printf("Player 2 Walls: ");
+  term_color(PLAYER_2_COLOR);
+  printf("%i\n", state->player2_walls);
   term_reset();
 }
 
