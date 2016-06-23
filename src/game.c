@@ -8,6 +8,8 @@
 #include "case/case.h"
 #include "trim/trim.h"
 #include "strsplit/strsplit.h"
+#include "term/term.h"
+
 #include "board.h"
 #include "gamestate.h"
 #include "history.h"
@@ -166,12 +168,18 @@ repl()
 
   while (true)
   {
+    term_clear("screen");
     GameState_print(gamestate, as_player);
     printf("\n");
     GameHistory_print(gamehistory);
     printf("\nEnter next move (empty to autocompute): ");
     move = read_line(buffer, 40, stdin);
-    if (strlen(move) == 1 && *(move) == 'u')
+    if (strlen(move) == 1 && *(move) == 'q')
+    {
+      printf("Quitting...\n");
+      break;
+    }
+    else if (strlen(move) == 1 && *(move) == 'u')
     {
       printf("Undoing last move...");
       gamehistory_t *lastmove = GameHistory_pop(gamehistory);
@@ -225,6 +233,9 @@ repl()
       }
     }
   }
+
+  GameHistory_destroy(gamehistory);
+  GameState_destroy(gamestate);
 }
 
 int

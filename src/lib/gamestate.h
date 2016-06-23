@@ -5,6 +5,8 @@
 #include "board.h"
 
 #define DEFAULT_WALLS 10
+#define PLAYER1_TARGET 72
+#define PLAYER2_TARGET 8
 
 typedef struct GameState {
   board_t *board;

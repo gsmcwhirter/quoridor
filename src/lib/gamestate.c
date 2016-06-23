@@ -192,10 +192,10 @@ GameState_legalWall(gamestate_t *state, player_t player, walldir_t walldir, int 
 bool
 GameState_isGameOver(gamestate_t *state)
 {
-  int p1target = locToInt(9, 'a', SQUARES_SIZE);
-  int p2target = locToInt(1, 'a' + SQUARES_SIZE - 1, SQUARES_SIZE);
+  // int p1target = locToInt(9, 'a', SQUARES_SIZE);
+  // int p2target = locToInt(1, 'a' + SQUARES_SIZE - 1, SQUARES_SIZE);
 
-  if (state->board->player1 >= p1target || state->board->player2 <= p2target)
+  if (state->board->player1 >= PLAYER1_TARGET || state->board->player2 <= PLAYER2_TARGET)
     return true;
   else
     return false;

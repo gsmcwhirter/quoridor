@@ -4,6 +4,7 @@
 #include "board.h"
 #include "gamestate.h"
 #include "term/term.h"
+#include "search.h"
 
 int
 main()
@@ -11,31 +12,30 @@ main()
   board_t *board = Board_create();
   gamestate_t *state = GameState_create(board, PLAYER1);
 
-  GameState_print(state);
+  GameState_print(state, PLAYER1);
 
   Board_addWall(board, VERTICAL, 6, 'g');
   Board_addWall(board, HORIZONTAL, 3, 'e');
   Board_movePlayer(board, PLAYER1, 3, 'e');
   Board_movePlayer(board, PLAYER2, 6, 'g');
 
-  GameState_print(state);
-  // printf("%i\n", Board_validWall(board, HORIZONTAL, 3, 7));
-  // printf("%i\n", Board_validWall(board, VERTICAL, 7, 7));
-  // printf("\n");
-  // printf("%i\n", GameState_legalWall(state, PLAYER1, HORIZONTAL, 3, 7));
-  // printf("%i\n", GameState_legalWall(state, PLAYER2, VERTICAL, 7, 7));
-  // printf("\n");
-  // printf("%i\n", adjacentSquares(3, 5, 4, 5));
-  // printf("%i\n", adjacentSquares(3, 5, 3, 6));
-  // printf("%i\n", adjacentSquares(3, 5, 4, 6));
-  // printf("\n");
-  // printf("%i\n", Board_wallBetween(board, 3, 5, 4, 5));
-  // printf("%i\n", Board_wallBetween(board, 3, 5, 3, 6));
-  // printf("%i\n", Board_wallBetween(board, 3, 5, 4, 6));
-  // printf("\n");
-  // printf("%i\n", GameState_legalMove(state, PLAYER1, 4, 5));
-  // printf("%i\n", GameState_legalMove(state, PLAYER1, 3, 6));
-  // printf("\n");
+  GameState_print(state, PLAYER1);
+
+  searchresult_t * res = Search_bfs_all(state->board, PLAYER1, state->board->player1);
+
+  printf("Shortest Paths: %i\n", res->count);
+  printf("Shortest Path Length: %i\n", res->shortest_length);
+  printf("Shortest Paths:\n");
+  pathinfo_t *path;
+  for (int i = 0; i < res->count; i++)
+  {
+    path = *(res->shortest_paths + i);
+    printf("\t");
+    PathInfo_print(path);
+  }
+
+  SearchResult_destroy(res, true);
+  GameState_destroy(state);
 
   return 0;
 }

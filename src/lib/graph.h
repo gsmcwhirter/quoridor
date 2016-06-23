@@ -33,5 +33,6 @@ void Graph_addEdge(graph_t *graph, int n1, int n2);
 bool Graph_hasEdge(graph_t *graph, int n1, int n2);
 void Graph_removeEdge(graph_t *graph, int n1, int n2);
 void Graph_destroy(graph_t *graph);
+adjlist_t * Graph_neighbors(graph_t *graph, int n);
 
 #endif

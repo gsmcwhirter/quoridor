@@ -223,6 +223,13 @@ Graph_destroy(graph_t *g)
     {
       AdjList_destroy(*(g->adj_lists + i));
     }
+    free(g->adj_lists);
     free(g);
   }
+}
+
+adjlist_t *
+Graph_neighbors(graph_t *graph, int n)
+{
+  return *(graph->adj_lists + n);
 }
