@@ -10,6 +10,7 @@
 #include "strsplit/strsplit.h"
 #include "board.h"
 #include "gamestate.h"
+#include "history.h"
 
 #define UNUSED(x) (void)(x)
 
@@ -69,6 +70,32 @@ read_line (char *buf, size_t length, FILE *f)
   return p;
 } /* end read_line */
 
+bool
+playMove(gamestate_t* state, gamehistory_t *history, char* move)
+{
+  bool result;
+  walldir_t dir = NONE;
+  if (strlen(move) == 2) //move
+  {
+    result = GameState_moveCurrentPlayer(state, *(move + 1) - '1' + 1, *(move));
+  }
+  else //3; wall
+  {
+    if (*(move + 2) == 'h') dir = HORIZONTAL;
+    else dir = VERTICAL;
+    result = GameState_addWallCurrentPlayer(state, dir, *(move + 1) - '1' + 1, *(move));
+  }
+
+  if (result)
+  {
+    gamemove_t *gamemove = GameMove_create(state->player, *(move + 1) - '1' + 1, *(move), dir);
+    GameState_togglePlayer(state);
+    GameHistory_push(history, gamemove);
+  }
+
+  return result;
+}
+
 void
 repl()
 {
@@ -76,12 +103,14 @@ repl()
   printf("Starting Game...\n");
   size_t ct = occurrences(history_delim, history);
 
+  gamehistory_t *gamehistory = GameHistory_create();
+
   size_t num_moves;
   char **moves;
 
   if (ct > 0)
   {
-    moves = malloc(sizeof(char*) * ct);
+    moves = malloc(sizeof(char*) * (ct+1));
     num_moves = strsplit(history, moves, history_delim);
   }
   else
@@ -91,42 +120,87 @@ repl()
     num_moves = strlen(trim(*(moves))) > 0 ? 1 : 0;
   }
 
-  player_t player;
+  player_t player = PLAYER1;
 
-  if (num_moves > 0)
-  {
-    if (num_moves % 2 == 0)
-    {
-      player = PLAYER1;
-    }
-    else
-    {
-      player = PLAYER2;
-    }
-  }
-  else
-  {
-    player = PLAYER1;
-  }
+  // if (num_moves > 0)
+  // {
+  //   if (num_moves % 2 == 0)
+  //   {
+  //     player = PLAYER1;
+  //   }
+  //   else
+  //   {
+  //     player = PLAYER2;
+  //   }
+  // }
+  // else
+  // {
+  //   player = PLAYER1;
+  // }
+
+  board_t *board = Board_create();
+  gamestate_t *gamestate = GameState_create(board, player);
 
   for (unsigned int i = 0; i < num_moves; i++)
   {
     printf("Replaying move: %s\n", *(moves + i));
-    // TODO: replay move
+    playMove(gamestate, gamehistory, *(moves + i));
   }
 
-  board_t *board = Board_create();
-  gamestate_t *gamestate = GameState_create(board,player);
-  GameState_print(gamestate);
+  char *move;
+  player_t as_player;
+  while (true)
+  {
+    printf("\nAre you playing as player 1 or player 2? ");
+    move = read_line(buffer, 40, stdin);
+
+    if (!(strlen(move) == 1 && (*(move) == '1' || *(move) == '2')))
+    {
+      printf("Please select whether you are playing as player 1 or player 2.\n");
+    }
+    else
+    {
+      as_player = *(move) - '1' + 1;
+      printf("\n");
+      break;
+    }
+  }
 
   while (true)
   {
-    char *move;
-    printf("Enter next move (empty to autocompute): ");
-    move = read_line(buffer, 40, stdin);
-    printf("%s", move);
+    GameState_print(gamestate, as_player);
     printf("\n");
-    break;
+    GameHistory_print(gamehistory);
+    printf("\nEnter next move (empty to autocompute): ");
+    move = read_line(buffer, 40, stdin);
+    if (strlen(move) > 3 || strlen(move) < 2)
+    {
+      printf("Invalid move notation.\n");
+    }
+    else if (strlen(move) == 3 && *(move + 2) != 'h' && *(move + 2) != 'v')
+    {
+      printf("Invalid wall direction.\n");
+    }
+    else if (*(move) < 'a' || *(move) > 'i')
+    {
+      printf("Invalid column name.\n");
+    }
+    else if (*(move + 1) < '1' || *(move + 1) > '9')
+    {
+      printf("Invalid row number.\n");
+    }
+    else if (!playMove(gamestate, gamehistory, move)){
+      printf("Illegal move!\n");
+    }
+    else
+    {
+
+      if (GameState_isGameOver(gamestate))
+      {
+        printf("Game Over!\n");
+        break;
+      }
+    }
   }
 }
 

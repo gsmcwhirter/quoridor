@@ -44,9 +44,10 @@ GameState_destroy(gamestate_t *state)
 
 
 void
-GameState_print(gamestate_t *state)
+GameState_print(gamestate_t *state, player_t as_player)
 {
-  Board_print(state->board);
+  Board_print(state->board, as_player);
+  printf("\n");
   term_color("grey");
   printf("Turn of player: %i\n", state->player);
   printf("Player 1 Walls: %i\n", state->player1_walls);
@@ -56,26 +57,99 @@ GameState_print(gamestate_t *state)
 
 
 bool
-GameState_legalWall(gamestate_t *state, player_t player, walldir_t walldir, int r, int c)
+GameState_moveCurrentPlayer(gamestate_t *state, int r, char c)
 {
-  //TODO: pathing
-  bool walls_left;
-  if (player == PLAYER1)
+  if (GameState_legalMove(state, state->player, r, c))
   {
-    walls_left = state->player1_walls > 0;
+    Board_movePlayer(state->board, state->player, r, c);
+    return true;
   }
   else
   {
-    walls_left = state->player2_walls > 0;
+    return false;
   }
-  return walls_left && Board_validWall(state->board, walldir, r, c);
+}
+
+bool
+GameState_legalMove(gamestate_t *state, player_t player, int r, char c)
+{
+  int loc, loc_other, loc_inter;
+  if (player == PLAYER1)
+  {
+    loc = state->board->player1;
+    loc_other = state->board->player2;
+  }
+  else
+  {
+    loc = state->board->player2;
+    loc_other = state->board->player1;
+  }
+
+  if (locToInt(r, c, SQUARES_SIZE) == loc_other) return false;
+
+  int loc_r = intToRow(loc, SQUARES_SIZE);
+  char loc_c = 'a' + intToCol(loc, SQUARES_SIZE);
+
+  if(!Board_wallBetween(state->board, loc_r, loc_c, r, c))
+    return true;
+  // jump code
+  else if (abs(loc_r - r) == 1 && abs((int)loc_c - (int)c) == 1)
+  {
+    int diff = (int)c - (int)loc_c;
+    loc_inter = locToInt(loc_r, c, SQUARES_SIZE);
+    if (loc_other == loc_inter &&
+        Board_wallBetween(state->board, loc_r, c, loc_r, c+diff) &&
+        !Board_wallBetween(state->board, loc_r, loc_c, loc_r, c) &&
+        !Board_wallBetween(state->board, loc_r, c, r, c)) return true;
+
+    diff = r - loc_r;
+    loc_inter = locToInt(r, loc_c, SQUARES_SIZE);
+    if (loc_other == loc_inter &&
+        Board_wallBetween(state->board, r, loc_c, r+diff, loc_c) &&
+        !Board_wallBetween(state->board, loc_r, loc_c, r, loc_c) &&
+        !Board_wallBetween(state->board, r, loc_c, r, c)) return true;
+
+    return false;
+  }
+  else if (loc_r - r == 0 && abs((int)loc_c - (int)c) == 2)
+  {
+    loc_inter = locToInt(loc_r, ((int)loc_c + (int)c)/2, SQUARES_SIZE);
+    if (loc_other != loc_inter) return false;
+    if (Board_wallBetween(state->board, loc_r, loc_c, r, (char)(((int)loc_c + (int)c)/2))) return false;
+    if (Board_wallBetween(state->board, r, c, r, (char)(((int)loc_c + (int)c)/2))) return false;
+    return true;
+  }
+  else if ((int)loc_c - (int)c == 0 && abs(loc_r - r) == 2)
+  {
+    loc_inter = locToInt((loc_r + r)/2, loc_c, SQUARES_SIZE);
+    if (loc_other != loc_inter) return false;
+    if (Board_wallBetween(state->board, loc_r, loc_c, (loc_r + r)/2, c)) return false;
+    if (Board_wallBetween(state->board, r, c, (loc_r + r)/2, c)) return false;
+    return true;
+  }
+  else
+  {
+    return false;
+  }
 }
 
 
-void
-GameState_addWall(gamestate_t *state, player_t player, walldir_t walldir, int r, int c)
+bool
+GameState_addWallCurrentPlayer(gamestate_t *state, walldir_t walldir, int r, char c)
 {
-  if (player == PLAYER1)
+  if (!GameState_legalWall(state, state->player, walldir, r, c))
+  {
+    // printf("fail1\n");
+    return false;
+  }
+
+  if (!Board_addWall(state->board, walldir, r, c))
+  {
+    // printf("fail2\n");
+    return false;
+  }
+
+  if (state->player == PLAYER1)
   {
     state->player1_walls--;
   }
@@ -83,30 +157,41 @@ GameState_addWall(gamestate_t *state, player_t player, walldir_t walldir, int r,
   {
     state->player2_walls--;
   }
-  Board_addWall(state->board, walldir, r, c);
+
+  return true;
 }
 
 
 bool
-GameState_legalMove(gamestate_t *state, player_t player, int r, int c)
+GameState_legalWall(gamestate_t *state, player_t player, walldir_t walldir, int r, char c)
 {
-  int pr, pc;
-  if (player == PLAYER1)
-  {
-    pr = state->board->player1[0];
-    pc = state->board->player1[1];
-  }
+  if (player == PLAYER1 && state->player1_walls == 0) return false;
+  if (player == PLAYER2 && state->player2_walls == 0) return false;
+  // printf("fail3\n");
+  if (!Board_validWall(state->board, walldir, r, c)) return false;
+  // printf("fail4\n");
+  return true;
+  // TODO: pathing
+}
+
+
+bool
+GameState_isGameOver(gamestate_t *state)
+{
+  int p1target = locToInt(9, 'a', SQUARES_SIZE);
+  int p2target = locToInt(1, 'a' + SQUARES_SIZE - 1, SQUARES_SIZE);
+
+  if (state->board->player1 >= p1target || state->board->player2 <= p2target)
+    return true;
   else
-  {
-    pr = state->board->player2[0];
-    pc = state->board->player2[1];
-  }
-  return adjacentSquares(pr, pc, r, c) && !Board_wallBetween(state->board, pr, pc, r, c);
+    return false;
+
 }
 
 
 void
-GameState_movePlayer(gamestate_t *state, player_t player, int r, int c)
+GameState_togglePlayer(gamestate_t *state)
 {
-  Board_movePlayer(state->board, player, r, c);
+  if (state->player == PLAYER1) state->player = PLAYER2;
+  else state->player = PLAYER1;
 }
