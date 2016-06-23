@@ -28,8 +28,8 @@ SearchResult_createWithSize(int ct)
 bool
 SearchResult_add(searchresult_t *res, pathinfo_t *path)
 {
-    if (path->length > res->shortest_length) return false;
-    else if (path->length == res->shortest_length)
+    if (path->length > res->shortest_length + BFS_MARGIN) return false;
+    else if (path->length >= res->shortest_length)
     {
       if (res->count == res->max_count) SearchResult_expand(res);
       *(res->shortest_paths + res->count) = path;
@@ -39,12 +39,17 @@ SearchResult_add(searchresult_t *res, pathinfo_t *path)
     else
     {
       res->shortest_length = path->length;
-      for (int i = 0; i < res->count; i++)
+      for (int i = res->count-1; i >= 0; i--)
       {
-        PathInfo_destroy(*(res->shortest_paths + i));
+        if ((*(res->shortest_paths + i))->length > res->shortest_length + BFS_MARGIN)
+        {
+          PathInfo_destroy(*(res->shortest_paths + i));
+          res->count--;
+          *(res->shortest_paths + i) = *(res->shortest_paths + res->count);
+        }
       }
-      res->count = 1;
-      *(res->shortest_paths) = path;
+      *(res->shortest_paths + res->count) = path;
+      res->count++;
 
       // printf("ADDED!\n");
 
@@ -189,7 +194,7 @@ Search_bfs_all(board_t *board, player_t player, int start)
   while ((curr = PathQueue_shift(queue)))
   {
     // printf("here %i\n", ct);
-    if (curr->path->length < res->shortest_length)
+    if (curr->path->length < res->shortest_length + BFS_MARGIN)
     {
       // printf("here2 %i\n", ct);
       // PathInfo_print(curr->path);
@@ -217,7 +222,7 @@ Search_bfs_all(board_t *board, player_t player, int start)
               PathInfo_destroy(to_add);
             }
           }
-          else if (to_add->length < res->shortest_length)
+          else if (to_add->length < res->shortest_length + BFS_MARGIN)
           {
             // printf("adding one %i\n", ct);
             PathQueue_push(queue, PathList_create(to_add));

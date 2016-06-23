@@ -151,13 +151,20 @@ void Path_destroy(path_t *path)
 
 void Path_print(path_t *path)
 {
-  path_t *curr = path;
-  printf(" %i", curr->square);
-  while ((curr = curr->next))
-  {
-    printf(" %i", curr->square);
-  }
-  printf("\n");
+  // path_t *curr = path;
+  // printf(" %i", curr->square);
+  // while ((curr = curr->next))
+  // {
+  //   printf(" %i", curr->square);
+  // }
+  if (path->next != NULL)
+    Path_print(path->next);
+  if (path->square == -1)
+    printf("\n");
+  else if (path->next == NULL)
+    printf(" [%i]", path->square);
+  else
+    printf(" %i", path->square);
 }
 
 pathinfo_t *

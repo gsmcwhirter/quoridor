@@ -7,6 +7,8 @@
 #include "board.h"
 #include "path.h"
 
+#define BFS_MARGIN 2
+
 typedef struct SearchResult {
   int count;
   int max_count;
