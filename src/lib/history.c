@@ -16,6 +16,12 @@ GameMove_create(player_t player, int row, char col, walldir_t wall, char *srep)
   return move;
 }
 
+gamemove_t *
+GameMove_clone(gamemove_t *move)
+{
+  return GameMove_create(move->player, move->row, move->col, move->wall, strdup(move->srep));
+}
+
 void
 GameMove_print(gamemove_t *move)
 {
@@ -47,6 +53,23 @@ GameHistory_create()
   h->prev = NULL;
   h->next = NULL;
   h->move = NULL;
+
+  return h;
+}
+
+gamehistory_t *
+GameHistory_clone(gamehistory_t *history)
+{
+  gamehistory_t *h = GameHistory_create();
+
+  if (history->move != NULL)
+    h->move = GameMove_clone(history->move);
+
+  if (history->next != NULL)
+  {
+    h->next = GameHistory_clone(history->next);
+    h->next->prev = h;
+  }
 
   return h;
 }

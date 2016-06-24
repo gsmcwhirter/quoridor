@@ -7,16 +7,18 @@
 #include "gamestate.h"
 
 searchresult_t *
-SearchResult_create()
+SearchResult_create(int results, int bfs_margin)
 {
-  return SearchResult_createWithSize(8);
+  return SearchResult_createWithSize(results, bfs_margin, 8);
 }
 
 searchresult_t *
-SearchResult_createWithSize(int ct)
+SearchResult_createWithSize(int results, int bfs_margin, int ct)
 {
   searchresult_t *res = malloc(sizeof(searchresult_t));
   res->count = 0;
+  res->results_desired = results;
+  res->bfs_margin = bfs_margin;
   res->max_count = ct;
   res->shortest_length = 82;
   res->shortest_paths = malloc(sizeof(pathinfo_t *) * res->max_count);
@@ -28,7 +30,7 @@ SearchResult_createWithSize(int ct)
 bool
 SearchResult_add(searchresult_t *res, pathinfo_t *path)
 {
-    if (path->length > res->shortest_length + BFS_MARGIN) return false;
+    if (path->length > res->shortest_length + res->bfs_margin) return false;
     else if (path->length >= res->shortest_length)
     {
       if (res->count == res->max_count) SearchResult_expand(res);
@@ -41,7 +43,7 @@ SearchResult_add(searchresult_t *res, pathinfo_t *path)
       res->shortest_length = path->length;
       for (int i = res->count-1; i >= 0; i--)
       {
-        if ((*(res->shortest_paths + i))->length > res->shortest_length + BFS_MARGIN)
+        if ((*(res->shortest_paths + i))->length > res->shortest_length + res->bfs_margin)
         {
           PathInfo_destroy(*(res->shortest_paths + i));
           res->count--;
@@ -176,12 +178,12 @@ PathQueue_destroy(pathqueue_t *queue)
   }
 }
 
-searchresult_t *
-Search_bfs_all(board_t *board, player_t player, int start)
+void
+Search_bfs_all(searchresult_t *res, board_t *board, player_t player, int start)
 {
-  searchresult_t *res = SearchResult_create();
   pathqueue_t *queue = PathQueue_create();
-  PathQueue_push(queue, PathList_create(PathInfo_create(start)));
+  visitedrec_t *visited = VisitedRecord_create();
+  PathQueue_push(queue, PathList_create(PathInfo_create(start, visited)));
 
   pathlist_t *curr;
   adjlist_t *neighbors;
@@ -194,10 +196,11 @@ Search_bfs_all(board_t *board, player_t player, int start)
   while ((curr = PathQueue_shift(queue)))
   {
     // printf("here %i\n", ct);
-    if (curr->path->length < res->shortest_length + BFS_MARGIN)
+    if (curr->path->length < res->shortest_length + res->bfs_margin)
     {
       // printf("here2 %i\n", ct);
-      // PathInfo_print(curr->path);
+      printf("Now considering: ");
+      PathInfo_print(curr->path);
       curr_sq = Path_firstSquare(curr->path->path);
       // printf("here3 %i\n", ct);
       neighbors = Graph_neighbors(board->squares, curr_sq);
@@ -216,13 +219,13 @@ Search_bfs_all(board_t *board, player_t player, int start)
 
           if ((player == PLAYER1 && neighbor >= PLAYER1_TARGET) || (player == PLAYER2 && neighbor <= PLAYER2_TARGET))
           {
-            // printf("REACHED THE END! (%i)\n", to_add->length);
+            printf("REACHED THE END! (%i)\n", to_add->length);
             if (!SearchResult_add(res, to_add))
             {
               PathInfo_destroy(to_add);
             }
           }
-          else if (to_add->length < res->shortest_length + BFS_MARGIN)
+          else if (to_add->length < res->shortest_length + res->bfs_margin)
           {
             // printf("adding one %i\n", ct);
             PathQueue_push(queue, PathList_create(to_add));
@@ -239,11 +242,14 @@ Search_bfs_all(board_t *board, player_t player, int start)
       }
     }
     PathList_destroy(curr);
+    if (res->results_desired > 0 && res->count >= res->results_desired)
+    {
+      break;
+    }
   }
 
+  VisitedRecord_destroy(visited);
   PathQueue_destroy(queue);
-
-  return res;
 }
 
 pathinfo_t * Search_bfs_one(board_t *board, player_t player, int start);

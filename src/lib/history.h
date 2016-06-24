@@ -12,6 +12,7 @@ typedef struct GameMove {
 } gamemove_t;
 
 gamemove_t *GameMove_create(player_t player, int row, char col, walldir_t wall, char *srep);
+gamemove_t *GameMove_clone(gamemove_t *move);
 void GameMove_print(gamemove_t *move);
 void GameMove_destroy(gamemove_t *move);
 
@@ -22,6 +23,7 @@ typedef struct History {
 } gamehistory_t;
 
 gamehistory_t * GameHistory_create();
+gamehistory_t * GameHistory_clone(gamehistory_t *history);
 void GameHistory_push(gamehistory_t *history, gamemove_t *move);
 gamehistory_t * GameHistory_get(gamehistory_t *history, int i);
 gamehistory_t * GameHistory_pop(gamehistory_t *history);

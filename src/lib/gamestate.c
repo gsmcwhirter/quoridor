@@ -3,7 +3,28 @@
 #include <stdbool.h>
 #include "board.h"
 #include "gamestate.h"
+#include "search.h"
 #include "term/term.h"
+
+
+char *
+moveDescription(moveresult_t res)
+{
+  switch (res)
+  {
+    case OK: return "Ok";
+    case NOT_ENOUGH_WALLS: return "Not enough walls.";
+    case WALL_BLOCKED: return "Wall placement blocked.";
+    case PATH_BLOCKED: return "Wall blocks player path.";
+    case WALL_FAILED: return "Failed to place the wall.";
+    case MOVE_BLOCKED: return "Opponent is in the way.";
+    case ILLEGAL_MOVE: return "Moved to non-adjacent square";
+    case ILLEGAL_JUMP: return "Attempted jump was illegal.";
+    case MOVE_FAILED: return "Failed to move player.";
+    case NOT_YOUR_TURN: return "Not your turn.";
+    default: return "Unknown error";
+  }
+}
 
 
 gamestate_t *
@@ -70,21 +91,34 @@ GameState_print(gamestate_t *state, player_t as_player)
 }
 
 
-bool
-GameState_moveCurrentPlayer(gamestate_t *state, int r, char c)
+moveresult_t
+GameState_applyMove(gamestate_t *state, gamemove_t *move)
 {
-  if (GameState_legalMove(state, state->player, r, c))
+  if (move->player != state->player) return NOT_YOUR_TURN;
+
+  if (move->wall == NONE)
   {
-    Board_movePlayer(state->board, state->player, r, c);
-    return true;
+    return GameState_moveCurrentPlayer(state, move->row, move->col);
   }
   else
   {
-    return false;
+    return GameState_addWallCurrentPlayer(state, move->wall, move->row, move->col);
   }
 }
 
-bool
+
+moveresult_t
+GameState_moveCurrentPlayer(gamestate_t *state, int r, char c)
+{
+  moveresult_t res = GameState_legalMove(state, state->player, r, c);
+  if (res == OK)
+  {
+    Board_movePlayer(state->board, state->player, r, c);
+  }
+  return res;
+}
+
+moveresult_t
 GameState_legalMove(gamestate_t *state, player_t player, int r, char c)
 {
   int loc, loc_other, loc_inter;
@@ -99,13 +133,14 @@ GameState_legalMove(gamestate_t *state, player_t player, int r, char c)
     loc_other = state->board->player1;
   }
 
-  if (locToInt(r, c, SQUARES_SIZE) == loc_other) return false;
+  if (locToInt(r, c, SQUARES_SIZE) == loc_other)
+    return MOVE_BLOCKED;
 
   int loc_r = intToRow(loc, SQUARES_SIZE);
   char loc_c = 'a' + intToCol(loc, SQUARES_SIZE);
 
   if(!Board_wallBetween(state->board, loc_r, loc_c, r, c))
-    return true;
+    return OK;
   // jump code
   else if (abs(loc_r - r) == 1 && abs((int)loc_c - (int)c) == 1)
   {
@@ -114,53 +149,54 @@ GameState_legalMove(gamestate_t *state, player_t player, int r, char c)
     if (loc_other == loc_inter &&
         Board_wallBetween(state->board, loc_r, c, loc_r, c+diff) &&
         !Board_wallBetween(state->board, loc_r, loc_c, loc_r, c) &&
-        !Board_wallBetween(state->board, loc_r, c, r, c)) return true;
+        !Board_wallBetween(state->board, loc_r, c, r, c)) return OK;
 
     diff = r - loc_r;
     loc_inter = locToInt(r, loc_c, SQUARES_SIZE);
     if (loc_other == loc_inter &&
         Board_wallBetween(state->board, r, loc_c, r+diff, loc_c) &&
         !Board_wallBetween(state->board, loc_r, loc_c, r, loc_c) &&
-        !Board_wallBetween(state->board, r, loc_c, r, c)) return true;
+        !Board_wallBetween(state->board, r, loc_c, r, c)) return OK;
 
-    return false;
+    return ILLEGAL_JUMP;
   }
   else if (loc_r - r == 0 && abs((int)loc_c - (int)c) == 2)
   {
     loc_inter = locToInt(loc_r, ((int)loc_c + (int)c)/2, SQUARES_SIZE);
-    if (loc_other != loc_inter) return false;
-    if (Board_wallBetween(state->board, loc_r, loc_c, r, (char)(((int)loc_c + (int)c)/2))) return false;
-    if (Board_wallBetween(state->board, r, c, r, (char)(((int)loc_c + (int)c)/2))) return false;
-    return true;
+    if (loc_other != loc_inter) return ILLEGAL_JUMP;
+    if (Board_wallBetween(state->board, loc_r, loc_c, r, (char)(((int)loc_c + (int)c)/2))) return ILLEGAL_JUMP;
+    if (Board_wallBetween(state->board, r, c, r, (char)(((int)loc_c + (int)c)/2))) return ILLEGAL_JUMP;
+    return OK;
   }
   else if ((int)loc_c - (int)c == 0 && abs(loc_r - r) == 2)
   {
     loc_inter = locToInt((loc_r + r)/2, loc_c, SQUARES_SIZE);
-    if (loc_other != loc_inter) return false;
-    if (Board_wallBetween(state->board, loc_r, loc_c, (loc_r + r)/2, c)) return false;
-    if (Board_wallBetween(state->board, r, c, (loc_r + r)/2, c)) return false;
-    return true;
+    if (loc_other != loc_inter) return ILLEGAL_JUMP;
+    if (Board_wallBetween(state->board, loc_r, loc_c, (loc_r + r)/2, c)) return ILLEGAL_JUMP;
+    if (Board_wallBetween(state->board, r, c, (loc_r + r)/2, c)) return ILLEGAL_JUMP;
+    return OK;
   }
   else
   {
-    return false;
+    return ILLEGAL_MOVE;
   }
 }
 
 
-bool
+moveresult_t
 GameState_addWallCurrentPlayer(gamestate_t *state, walldir_t walldir, int r, char c)
 {
-  if (!GameState_legalWall(state, state->player, walldir, r, c))
+  moveresult_t res = GameState_legalWall(state, state->player, walldir, r, c);
+  if (res != OK)
   {
     // printf("fail1\n");
-    return false;
+    return res;
   }
 
   if (!Board_addWall(state->board, walldir, r, c))
   {
     // printf("fail2\n");
-    return false;
+    return WALL_FAILED;
   }
 
   if (state->player == PLAYER1)
@@ -172,20 +208,42 @@ GameState_addWallCurrentPlayer(gamestate_t *state, walldir_t walldir, int r, cha
     state->player2_walls--;
   }
 
-  return true;
+  return OK;
 }
 
 
-bool
+moveresult_t
 GameState_legalWall(gamestate_t *state, player_t player, walldir_t walldir, int r, char c)
 {
-  if (player == PLAYER1 && state->player1_walls == 0) return false;
-  if (player == PLAYER2 && state->player2_walls == 0) return false;
+  if (player == PLAYER1 && state->player1_walls == 0) return NOT_ENOUGH_WALLS;
+  if (player == PLAYER2 && state->player2_walls == 0) return NOT_ENOUGH_WALLS;
   // printf("fail3\n");
-  if (!Board_validWall(state->board, walldir, r, c)) return false;
-  // printf("fail4\n");
-  return true;
-  // TODO: pathing
+  if (!Board_validWall(state->board, walldir, r, c)) return WALL_BLOCKED;
+  board_t *board_after = Board_clone(state->board);
+  Board_addWall(board_after, walldir, r, c);
+  searchresult_t * res = SearchResult_createWithSize(1, 0, 1);
+  Search_bfs_all(res, board_after, PLAYER1, state->board->player1);
+
+  moveresult_t ret = OK;
+  if (res->count == 0)
+  {
+    ret = PATH_BLOCKED;
+  }
+  else
+  {
+    SearchResult_destroy(res, true);
+    res = SearchResult_createWithSize(1, 0, 1);
+    Search_bfs_all(res, board_after, PLAYER2, state->board->player2);
+
+    if (res->count == 0)
+    {
+      ret = PATH_BLOCKED;
+    }
+  }
+
+  SearchResult_destroy(res, true);
+  Board_destroy(board_after);
+  return ret;
 }
 
 

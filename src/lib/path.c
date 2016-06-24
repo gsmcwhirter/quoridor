@@ -168,13 +168,13 @@ void Path_print(path_t *path)
 }
 
 pathinfo_t *
-PathInfo_create(int square)
+PathInfo_create(int square, visitedrec_t *visited)
 {
   pathinfo_t *pathinfo = malloc(sizeof(pathinfo_t));
   pathinfo->length = 1;
   pathinfo->path = Path_create();
   Path_push(pathinfo->path, square);
-  pathinfo->visited = calloc(SQUARES_SIZE_SQ, sizeof(bool));
+  pathinfo->visited = visited;
 
   return pathinfo;
 }
@@ -185,11 +185,12 @@ PathInfo_clone(pathinfo_t *path)
   pathinfo_t *new = malloc(sizeof(pathinfo_t));
   new->length = path->length;
   new->path = Path_clone(path->path);
-  new->visited = calloc(SQUARES_SIZE_SQ, sizeof(bool));
-  for (int i = 0; i < SQUARES_SIZE_SQ; i++)
-  {
-    *(new->visited + i) = *(path->visited + i);
-  }
+  // new->visited = calloc(SQUARES_SIZE_SQ, sizeof(bool));
+  // for (int i = 0; i < SQUARES_SIZE_SQ; i++)
+  // {
+  //   *(new->visited + i) = *(path->visited + i);
+  // }
+  new->visited = path->visited;
 
   return new;
 }
@@ -197,7 +198,7 @@ PathInfo_clone(pathinfo_t *path)
 bool
 PathInfo_visited(pathinfo_t *pathinfo, int square)
 {
-  return *(pathinfo->visited + square);
+  return VisitedRecord_visited(pathinfo->visited, square);
 }
 
 bool
@@ -207,7 +208,7 @@ PathInfo_push(pathinfo_t *pathinfo, int square)
 
   pathinfo->length++;
   Path_push(pathinfo->path, square);
-  *(pathinfo->visited + square) = true;
+  VisitedRecord_setVisited(pathinfo->visited, square);
 
   return true;
 }
@@ -221,7 +222,7 @@ PathInfo_pop(pathinfo_t *pathinfo)
   if (ret >= 0)
   {
     pathinfo->length--;
-    *(pathinfo->visited + ret) = false;
+    // *(pathinfo->visited + ret) = false;
   }
 
   return ret;
@@ -237,7 +238,7 @@ PathInfo_unshift(pathinfo_t *pathinfo, int square)
   // printf("xxx\n");
   Path_unshift(pathinfo->path, square);
   // printf("yyy\n");
-  *(pathinfo->visited + square) = true;
+  VisitedRecord_setVisited(pathinfo->visited, square);
 
   // PathInfo_print(pathinfo);
 
@@ -252,7 +253,7 @@ PathInfo_shift(pathinfo_t *pathinfo)
   if (ret >= 0)
   {
     pathinfo->length--;
-    *(pathinfo->visited + ret) = false;
+    // *(pathinfo->visited + ret) = false;
   }
 
   return ret;
@@ -263,7 +264,7 @@ PathInfo_destroy(pathinfo_t *pathinfo)
 {
   if (pathinfo != NULL)
   {
-    free(pathinfo->visited);
+    pathinfo->visited = NULL;
     path_t *path;
     while((path = pathinfo->path))
     {
@@ -284,4 +285,36 @@ PathInfo_print(pathinfo_t *pathinfo)
 {
   printf("(Length %i):", pathinfo->length);
   Path_print(pathinfo->path);
+}
+
+visitedrec_t *
+VisitedRecord_create()
+{
+  visitedrec_t *rec = malloc(sizeof(visitedrec_t));
+  rec->visited = calloc(SQUARES_SIZE_SQ, sizeof(bool));
+
+  return rec;
+}
+
+
+bool VisitedRecord_visited(visitedrec_t *rec, int square)
+{
+  return *(rec->visited + square);
+}
+
+
+void
+VisitedRecord_setVisited(visitedrec_t *rec, int square)
+{
+  *(rec->visited + square) = true;
+}
+
+
+void VisitedRecord_destroy(visitedrec_t *rec)
+{
+  if (rec != NULL)
+  {
+    free(rec->visited);
+    free(rec);
+  }
 }

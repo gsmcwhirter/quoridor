@@ -72,10 +72,10 @@ read_line (char *buf, size_t length, FILE *f)
   return p;
 } /* end read_line */
 
-bool
+moveresult_t
 playMove(gamestate_t* state, gamehistory_t *history, char* move)
 {
-  bool result;
+  moveresult_t result;
   walldir_t dir = NONE;
   if (strlen(move) == 2) //move
   {
@@ -88,7 +88,7 @@ playMove(gamestate_t* state, gamehistory_t *history, char* move)
     result = GameState_addWallCurrentPlayer(state, dir, *(move + 1) - '1' + 1, *(move));
   }
 
-  if (result)
+  if (result == OK)
   {
     gamemove_t *gamemove = GameMove_create(state->player, *(move + 1) - '1' + 1, *(move), dir, move);
     GameState_togglePlayer(state);
@@ -166,14 +166,18 @@ repl()
     }
   }
 
+  moveresult_t result;
   while (true)
   {
-    term_clear("screen");
+    printf("\n");
+    // term_clear("screen");
     GameState_print(gamestate, as_player);
     printf("\n");
     GameHistory_print(gamehistory);
     printf("\nEnter next move (empty to autocompute): ");
     move = read_line(buffer, 40, stdin);
+    printf("\n");
+
     if (strlen(move) == 1 && *(move) == 'q')
     {
       printf("Quitting...\n");
@@ -220,13 +224,14 @@ repl()
     {
       printf("Invalid row number.\n");
     }
-    else if (!playMove(gamestate, gamehistory, move)){
-      printf("Illegal move!\n");
-    }
     else
     {
-
-      if (GameState_isGameOver(gamestate))
+      result = playMove(gamestate, gamehistory, move);
+      if (result != OK)
+      {
+        printf("Illegal move: %s\n", moveDescription(result));
+      }
+      else if (GameState_isGameOver(gamestate))
       {
         printf("Game Over!\n");
         break;
@@ -253,3 +258,6 @@ main(int argc, char **argv)
   command_free(&cmd);
   return 0;
 }
+
+// Problem history: a1h,c1h,e1h,f2v,f3h then h3h
+// New problem history: a1h,c1h,e1h,f2v,f3h,f4v,f6v then f8v

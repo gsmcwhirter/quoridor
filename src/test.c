@@ -21,9 +21,12 @@ main()
 
   GameState_print(state, PLAYER1);
 
-  searchresult_t * res = Search_bfs_all(state->board, PLAYER1, state->board->player1);
 
-  printf("Shortest Paths: %i\n", res->count);
+  searchresult_t * res = SearchResult_create(0, 2);
+
+  Search_bfs_all(res, state->board, PLAYER1, state->board->player1);
+
+  printf("Shortest Paths: %i (max: %i)\n", res->count, res->results_desired);
   printf("Shortest Path Length: %i\n", res->shortest_length);
   printf("Shortest Paths:\n");
   pathinfo_t *path;

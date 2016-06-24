@@ -7,17 +7,17 @@
 #include "board.h"
 #include "path.h"
 
-#define BFS_MARGIN 2
-
 typedef struct SearchResult {
   int count;
+  int results_desired;
+  int bfs_margin;
   int max_count;
   int shortest_length;
   pathinfo_t **shortest_paths;
 } searchresult_t;
 
-searchresult_t * SearchResult_create();
-searchresult_t * SearchResult_createWithSize(int ct);
+searchresult_t * SearchResult_create(int results, int bfs_margin);
+searchresult_t * SearchResult_createWithSize(int results, int bfs_margin, int ct);
 bool SearchResult_add(searchresult_t *res, pathinfo_t *path);
 void SearchResult_expand(searchresult_t *res);
 void SearchResult_destroy(searchresult_t *res, bool recurse);
@@ -40,7 +40,7 @@ void PathQueue_push(pathqueue_t *queue, pathlist_t *path);
 pathlist_t * PathQueue_shift(pathqueue_t *queue);
 void PathQueue_destroy(pathqueue_t *queue);
 
-searchresult_t * Search_bfs_all(board_t *board, player_t player, int start);
+void Search_bfs_all(searchresult_t *res, board_t *board, player_t player, int start);
 pathinfo_t * Search_bfs_one(board_t *board, player_t player, int start);
 pathinfo_t * Search_dfs(board_t *board, player_t player, int start);
 

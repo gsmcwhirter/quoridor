@@ -21,13 +21,22 @@ int Path_shift(path_t *path);
 void Path_destroy(path_t *path);
 void Path_print(path_t *path);
 
+typedef struct VisitedRecord {
+  bool *visited;
+} visitedrec_t;
+
 typedef struct PathInfo {
   int length;
   path_t *path;
-  bool *visited;
+  visitedrec_t *visited;
 } pathinfo_t;
 
-pathinfo_t * PathInfo_create(int square);
+visitedrec_t * VisitedRecord_create();
+bool VisitedRecord_visited(visitedrec_t *rec, int square);
+void VisitedRecord_setVisited(visitedrec_t *rec, int square);
+void VisitedRecord_destroy(visitedrec_t *rec);
+
+pathinfo_t * PathInfo_create(int square, visitedrec_t *visited);
 pathinfo_t * PathInfo_clone(pathinfo_t *path);
 bool PathInfo_visited(pathinfo_t *pathinfo, int square);
 bool PathInfo_push(pathinfo_t *pathinfo, int square);
