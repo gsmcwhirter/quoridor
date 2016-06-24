@@ -75,16 +75,20 @@ read_line (char *buf, size_t length, FILE *f)
 moveresult_t
 playMove(gamestate_t* state, gamehistory_t *history, char* move)
 {
+  // printf("Playing move %s\n", move);
   moveresult_t result;
   walldir_t dir = NONE;
   if (strlen(move) == 2) //move
   {
+    // printf("Walk\n");
     result = GameState_moveCurrentPlayer(state, *(move + 1) - '1' + 1, *(move));
   }
   else //3; wall
   {
+    // printf("Wall\n");
     if (*(move + 2) == 'h') dir = HORIZONTAL;
     else dir = VERTICAL;
+
     result = GameState_addWallCurrentPlayer(state, dir, *(move + 1) - '1' + 1, *(move));
   }
 
@@ -152,7 +156,7 @@ repl()
   while (true)
   {
     printf("\nAre you playing as player 1 or player 2? ");
-    move = read_line(buffer, 40, stdin);
+    move = trim(case_lower(read_line(buffer, 40, stdin)));
 
     if (!(strlen(move) == 1 && (*(move) == '1' || *(move) == '2')))
     {
@@ -175,7 +179,7 @@ repl()
     printf("\n");
     GameHistory_print(gamehistory);
     printf("\nEnter next move (empty to autocompute): ");
-    move = read_line(buffer, 40, stdin);
+    move = trim(case_lower(read_line(buffer, 40, stdin)));
     printf("\n");
 
     if (strlen(move) == 1 && *(move) == 'q')

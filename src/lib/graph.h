@@ -17,9 +17,10 @@ typedef struct Graph {
   adjlist_t **adj_lists;
 } graph_t;
 
-adjlist_t * AdjList_create(const int total_nodes, const int max_degree);
+adjlist_t * AdjList_create(const int total_nodes);//, const int max_degree);
 adjlist_t * AdjList_clone(adjlist_t *al);
 void AdjList_addNeighbor(adjlist_t *al, int n);
+void AdjList_sortNeighbors(adjlist_t *al);
 bool AdjList_hasNeighbor(adjlist_t *al, int n);
 int AdjList_findNeighbor(adjlist_t *al, int n);
 void AdjList_removeNeighbor(adjlist_t *al, int n);

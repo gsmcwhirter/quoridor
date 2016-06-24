@@ -20,7 +20,7 @@ SearchResult_createWithSize(int results, int bfs_margin, int ct)
   res->results_desired = results;
   res->bfs_margin = bfs_margin;
   res->max_count = ct;
-  res->shortest_length = 82;
+  res->shortest_length = SQUARES_SIZE_SQ + 1;
   res->shortest_paths = malloc(sizeof(pathinfo_t *) * res->max_count);
 
   return res;
@@ -72,6 +72,20 @@ SearchResult_expand(searchresult_t *res)
     *(res->shortest_paths + i) = *(old + i);
   }
   free(old);
+}
+
+void
+SearchResult_reset(searchresult_t *res, bool destroy)
+{
+  for (int i = 0; i < res->count; i++)
+  {
+    if (destroy)
+      PathInfo_destroy(*(res->shortest_paths + i));
+    *(res->shortest_paths + i) = NULL;
+  }
+
+  res->count = 0;
+  res->shortest_length = SQUARES_SIZE_SQ + 1;
 }
 
 void
@@ -199,15 +213,17 @@ Search_bfs_all(searchresult_t *res, board_t *board, player_t player, int start)
     if (curr->path->length < res->shortest_length + res->bfs_margin)
     {
       // printf("here2 %i\n", ct);
-      printf("Now considering: ");
-      PathInfo_print(curr->path);
+      // printf("Now considering: ");
+      // PathInfo_print(curr->path);
       curr_sq = Path_firstSquare(curr->path->path);
       // printf("here3 %i\n", ct);
       neighbors = Graph_neighbors(board->squares, curr_sq);
       // printf("here4 %i\n", ct);
       for (int i = 0; i < neighbors->degree; i++)
       {
-        neighbor = *(neighbors->neighbors + i);
+        if (player == PLAYER1) neighbor = *(neighbors->neighbors + i);
+        else neighbor = *(neighbors->neighbors + (neighbors->degree - i - 1));
+
         // printf("neighbor: %i\n", neighbor);
         if (!PathInfo_visited(curr->path, neighbor))
         {
@@ -219,7 +235,7 @@ Search_bfs_all(searchresult_t *res, board_t *board, player_t player, int start)
 
           if ((player == PLAYER1 && neighbor >= PLAYER1_TARGET) || (player == PLAYER2 && neighbor <= PLAYER2_TARGET))
           {
-            printf("REACHED THE END! (%i)\n", to_add->length);
+            // printf("REACHED THE END! (%i)\n", to_add->length);
             if (!SearchResult_add(res, to_add))
             {
               PathInfo_destroy(to_add);

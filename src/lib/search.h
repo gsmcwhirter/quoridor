@@ -20,6 +20,7 @@ searchresult_t * SearchResult_create(int results, int bfs_margin);
 searchresult_t * SearchResult_createWithSize(int results, int bfs_margin, int ct);
 bool SearchResult_add(searchresult_t *res, pathinfo_t *path);
 void SearchResult_expand(searchresult_t *res);
+void SearchResult_reset(searchresult_t *res, bool destroy);
 void SearchResult_destroy(searchresult_t *res, bool recurse);
 
 typedef struct PathList {

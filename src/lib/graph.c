@@ -3,13 +3,17 @@
 #include "graph.h"
 
 adjlist_t *
-AdjList_create(const int total_nodes, const int max_degree)
+AdjList_create(const int total_nodes) //, const int max_degree)
 {
   adjlist_t *al = malloc(sizeof(adjlist_t));
   al->total_nodes = total_nodes;
-  al->max_degree = max_degree;
+  al->max_degree = 4;
   al->degree = 0;
-  al->neighbors = malloc(sizeof(int) * max_degree);
+  al->neighbors = malloc(sizeof(int) * 4); //max degree
+  *(al->neighbors) = -1;
+  *(al->neighbors + 1) = -1;
+  *(al->neighbors + 2) = -1;
+  *(al->neighbors + 3) = -1;
 
   return al;
 }
@@ -18,11 +22,12 @@ AdjList_create(const int total_nodes, const int max_degree)
 adjlist_t *
 AdjList_clone(adjlist_t *al)
 {
-  adjlist_t *al2 = malloc(sizeof(adjlist_t));
-  al2->total_nodes = al->total_nodes;
-  al2->max_degree = al->max_degree;
+  adjlist_t *al2 = AdjList_create(al->total_nodes);
+  // adjlist_t *al2 = malloc(sizeof(adjlist_t));
+  // al2->total_nodes = al->total_nodes;
+  // al2->max_degree = al->max_degree;
   al2->degree = al->degree;
-  al2->neighbors = malloc(sizeof(int) * al2->max_degree);
+  // al2->neighbors = malloc(sizeof(int) * al2->max_degree);
   for (int i = 0; i < al2->degree; i++)
   {
     *(al2->neighbors + i) = *(al->neighbors + i);
@@ -45,10 +50,27 @@ AdjList_addNeighbor(adjlist_t *al, int n)
     {
       *(al->neighbors + al->degree) = n;
       al->degree++;
+      AdjList_sortNeighbors(al);
     }
   }
 }
 
+static __inline__ void sort4(int * d)
+{
+#define SWAP(x,y) if (d[y] > d[x]) { int tmp = d[x]; d[x] = d[y]; d[y] = tmp; }
+SWAP(0, 1);
+SWAP(2, 3);
+SWAP(0, 2);
+SWAP(1, 3);
+SWAP(1, 2);
+#undef SWAP
+}
+
+void
+AdjList_sortNeighbors(adjlist_t *al)
+{
+  sort4(al->neighbors);
+}
 
 bool
 AdjList_hasNeighbor(adjlist_t *al, int n)
@@ -85,9 +107,11 @@ AdjList_removeNeighbor(adjlist_t *al, int n)
   int loc = AdjList_findNeighbor(al, n);
   if (loc >= 0)
   {
-    int temp = *(al->neighbors + (al->degree - 1));
-    *(al->neighbors + (al->degree - 1)) = *(al->neighbors + loc);
-    *(al->neighbors + loc) = temp;
+    // int temp = *(al->neighbors + (al->degree - 1));
+    // *(al->neighbors + (al->degree - 1)) = *(al->neighbors + loc);
+    // *(al->neighbors + loc) = temp;
+    *(al->neighbors + loc) = -1;
+    AdjList_sortNeighbors(al);
     al->degree--;
   }
 }
@@ -145,7 +169,7 @@ Graph_create(const int nodes, const int max_degree)
   g->adj_lists = malloc(sizeof(adjlist_t *) * nodes);
   for (int i = 0; i < nodes; i++)
   {
-    *(g->adj_lists + i) = AdjList_create(nodes, max_degree);
+    *(g->adj_lists + i) = AdjList_create(nodes);//, max_degree);
   }
 
   return g;
