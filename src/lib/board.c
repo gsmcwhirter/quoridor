@@ -1,79 +1,85 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <stdbool.h>
-#include "board.h"
-#include "graph.h"
+
 #include "term/term.h"
 
+#include "board.h"
+#include "graph.h"
 
-int
-locToInt(int r, char c, int row_size)
+
+unsigned char
+rcToLoc(unsigned char r, char c)
 {
-  return (r - 1) * row_size + ((int)(c - 'a'));
+  return (r - 1) * SQUARES_SIZE + (c - 'a');
 }
 
-int
-intToRow(int loc, int row_size)
+unsigned char
+locToRow(unsigned char loc)
 {
-  return loc / row_size + 1;
+  return loc / SQUARES_SIZE + 1;
 }
 
-int
-intToCol(int loc, int row_size)
+unsigned char
+locToCol(unsigned char loc)
 {
-  return loc % row_size;
+  return loc % SQUARES_SIZE;
 }
 
 
-board_t *
-Board_create()
-{
-  board_t *board = malloc(sizeof(board_t));
+// board_t *
+// Board_create()
+// {
+//   board_t *board = malloc(sizeof(board_t));
+//
+//   Board_init(board);
+//
+//   return board;
+// }
 
+void
+Board_init(board_t *board)
+{
   board->wall_slots = 0;
-  board->player1 = locToInt(1, 'e', SQUARES_SIZE);
-  board->player2 = locToInt(9, 'e', SQUARES_SIZE);
-  board->squares = Graph_create(SQUARES_SIZE_SQ, 4);
+  board->player1 = rcToLoc(1, 'e');
+  board->player2 = rcToLoc(9, 'e');
+  Graph_init(&(board->squares), SQUARES_SIZE_SQ, 4);
 
-  int r;
+  unsigned char r;
   char c;
   // Create edges
   for (int i = 0; i < SQUARES_SIZE_SQ; i++)
   {
-    r = intToRow(i, SQUARES_SIZE);
-    c = 'a' + intToCol(i, SQUARES_SIZE);
+    r = locToRow(i);
+    c = 'a' +locToCol(i);
 
-    int ns[4] = {-1, -1, -1, -1};
     if (r + 1 <= SQUARES_SIZE)
-      ns[0] = locToInt(r + 1, c, SQUARES_SIZE);
-    if (r - 1 > 0)
-      ns[1] = locToInt(r - 1, c, SQUARES_SIZE);
+      Graph_addEdge(&(board->squares), i, rcToLoc(r + 1, c));
+    if (r > 1)
+      Graph_addEdge(&(board->squares), i, rcToLoc(r - 1, c));
     if (c + 1 < 'a' + SQUARES_SIZE)
-      ns[2] = locToInt(r, c + 1, SQUARES_SIZE);
+      Graph_addEdge(&(board->squares), i, rcToLoc(r, c + 1));
     if (c - 1 >= 'a')
-      ns[3] = locToInt(r, c - 1, SQUARES_SIZE);
+      Graph_addEdge(&(board->squares), i, rcToLoc(r, c - 1));
 
-    for (int j = 0; j < 4; j++)
-    {
-      if (ns[j] >= 0)
-        Graph_addEdge(board->squares, i, ns[j]);
-    }
   }
-
-  return board;
 }
 
 
 board_t *
-Board_clone(const board_t *board)
+Board_clone(const board_t *board, board_t *new_board)
 {
-  board_t *new_board = malloc(sizeof(board_t));
+  if (new_board == NULL)
+  {
+    new_board = malloc(sizeof(board_t));
+  }
+
   new_board->wall_slots = board->wall_slots;
 
   new_board->player1 = board->player1;
   new_board->player2 = board->player2;
 
-  new_board->squares = Graph_clone(board->squares);
+  Graph_clone(&(board->squares), &(new_board->squares));
 
   return new_board;
 }
@@ -82,18 +88,18 @@ Board_clone(const board_t *board)
 void
 Board_destroy(board_t *board)
 {
-  if (board != NULL)
-  {
-    Graph_destroy(board->squares);
-    free(board);
-  }
+  // if (board != NULL)
+  // {
+  //   Graph_destroy(&(board->squares));
+  //   free(board);
+  // }
 }
 
 
 bool
-Board_isWallAtCorner(board_t *board, int r, char col)
+Board_isWallAtCorner(board_t *board, unsigned char r, char col)
 {
-  int c = col - 'a' + 1;
+  unsigned char c = col - 'a' + 1;
   if (r == 0 || r > WALLS_SIZE) return true;
   if (c == 0 || c > WALLS_SIZE) return true;
 
@@ -109,7 +115,7 @@ Board_isWallAtCorner(board_t *board, int r, char col)
 }
 
 void
-Board_setWallAtCorner(board_t *board, int r, char col)
+Board_setWallAtCorner(board_t *board, unsigned char r, char col)
 {
   int c = col - 'a' + 1;
   if (r > 0 && r <= WALLS_SIZE && c > 0 && c <= WALLS_SIZE)
@@ -120,18 +126,18 @@ Board_setWallAtCorner(board_t *board, int r, char col)
   }
 }
 
-void
-printWallSlots(unsigned long long ws)
-{
-  for (int i = 63; i >= 0; i--)
-  {
-    printf("%i", (ws & (1ll<<i))>0ll);
-  }
-  printf("\n");
-}
+// void
+// printWallSlots(unsigned long long ws)
+// {
+//   for (int i = 63; i >= 0; i--)
+//   {
+//     printf("%i", (ws & (1ll<<i))>0ll);
+//   }
+//   printf("\n");
+// }
 
 void
-Board_printHwall(board_t *board, int r, char col)
+Board_printHwall(board_t *board, unsigned char r, char col)
 {
   if (col < 'a')
     printf("   "); //label blank on horizontal
@@ -152,7 +158,7 @@ Board_printHwall(board_t *board, int r, char col)
 }
 
 void
-Board_printCorner(board_t *board, int r, char col)
+Board_printCorner(board_t *board, unsigned char r, char col)
 {
   //print corner
   if (Board_isWallAtCorner(board, r, col))
@@ -170,11 +176,11 @@ Board_printCorner(board_t *board, int r, char col)
 }
 
 void
-Board_printHWalls(board_t *board, player_t as_player, int r)
+Board_printHWalls(board_t *board, player_t as_player, unsigned char r)
 {
-  for (int cc = 0; cc <= SQUARES_SIZE; cc++)
+  for (char cc = 0; cc <= SQUARES_SIZE; cc++)
   {
-    int c;
+    char c;
     if (as_player == PLAYER2)
       c = SQUARES_SIZE - cc;
     else
@@ -198,7 +204,7 @@ Board_printHWalls(board_t *board, player_t as_player, int r)
 
 
 void
-Board_printVWall(board_t *board, int r, char col)
+Board_printVWall(board_t *board, unsigned char r, char col)
 {
   if (r > 0)
   {
@@ -230,7 +236,7 @@ Board_printVWall(board_t *board, int r, char col)
 
 
 void
-Board_printSquare(board_t *board, int r, char col)
+Board_printSquare(board_t *board, unsigned char r, char col)
 {
   if (r > 0)
   {
@@ -243,13 +249,13 @@ Board_printSquare(board_t *board, int r, char col)
     else
     {
       // square
-      if (r == intToRow(board->player1, SQUARES_SIZE) && col == 'a' + intToCol(board->player1, SQUARES_SIZE))
+      if (r == locToRow(board->player1) && col == 'a' + locToCol(board->player1))
       {
         term_color(PLAYER_1_COLOR);
         printf(" 1 ");
         term_reset();
       }
-      else if (r == intToRow(board->player2, SQUARES_SIZE) && col == 'a' + intToCol(board->player2, SQUARES_SIZE))
+      else if (r == locToRow(board->player2) && col == 'a' + locToCol(board->player2))
       {
         term_color(PLAYER_2_COLOR);
         printf(" 2 ");
@@ -278,11 +284,11 @@ Board_printSquare(board_t *board, int r, char col)
 
 
 void
-Board_printVWalls(board_t *board, player_t as_player, int r)
+Board_printVWalls(board_t *board, player_t as_player, unsigned char r)
 {
-  for (int cc = 0; cc <= SQUARES_SIZE; cc++)
+  for (char cc = 0; cc <= SQUARES_SIZE; cc++)
   {
-    int c;
+    char c;
     if (as_player == PLAYER2)
       c = SQUARES_SIZE - cc;
     else
@@ -306,9 +312,9 @@ Board_printVWalls(board_t *board, player_t as_player, int r)
 void
 Board_print(board_t *board, player_t as_player)
 {
-  for (int rr = SQUARES_SIZE; rr >= 0; rr--)
+  for (char rr = SQUARES_SIZE; rr >= 0; rr--)
   {
-    int r;
+    unsigned char r;
     if (as_player == PLAYER2)
     {
       r = SQUARES_SIZE - rr;
@@ -329,13 +335,13 @@ Board_print(board_t *board, player_t as_player)
 }
 
 bool
-Board_wallBetween(board_t *board, int r1, char c1, int r2, char c2)
+Board_wallBetween(board_t *board, unsigned char r1, char c1, unsigned char r2, char c2)
 {
   if (r1 == 0 || r2 == 0 || c1 < 'a' || c2 < 'a') return true;
   //assumes the squares are next to each other
-  int loc1 = locToInt(r1, c1, SQUARES_SIZE);
-  int loc2 = locToInt(r2, c2, SQUARES_SIZE);
-  if (Graph_hasEdge(board->squares, loc1, loc2))
+  unsigned char loc1 = rcToLoc(r1, c1);
+  unsigned char loc2 = rcToLoc(r2, c2);
+  if (Graph_hasEdge(&(board->squares), loc1, loc2))
   {
     return false;
   }
@@ -347,23 +353,23 @@ Board_wallBetween(board_t *board, int r1, char c1, int r2, char c2)
 
 
 bool
-Board_addWall(board_t *board, walldir_t walldir, int r, char c)
+Board_addWall(board_t *board, walldir_t walldir, unsigned char r, char c)
 {
-  int n = locToInt(r, c, SQUARES_SIZE);
+  unsigned char n = rcToLoc(r, c);
 
   Board_setWallAtCorner(board, r, c);
   //horizontal starts at the top-left, vertical at the bottom-right
   if (walldir == HORIZONTAL)
   {
     // cut edge between me and the one above, and same to the right
-    Graph_removeEdge(board->squares, n, n+SQUARES_SIZE);
-    Graph_removeEdge(board->squares, n+1, n+1+SQUARES_SIZE);
+    Graph_removeEdge(&(board->squares), n, n+SQUARES_SIZE);
+    Graph_removeEdge(&(board->squares), n+1, n+1+SQUARES_SIZE);
   }
   else if (walldir == VERTICAL) //vertical
   {
     // cut edge between me and the one to the right, and the same above
-    Graph_removeEdge(board->squares, n, n+1);
-    Graph_removeEdge(board->squares, n+SQUARES_SIZE, n+SQUARES_SIZE+1);
+    Graph_removeEdge(&(board->squares), n, n+1);
+    Graph_removeEdge(&(board->squares), n+SQUARES_SIZE, n+SQUARES_SIZE+1);
   }
   else
   {
@@ -375,32 +381,32 @@ Board_addWall(board_t *board, walldir_t walldir, int r, char c)
 
 
 bool
-Board_movePlayer(board_t *board, player_t player, int r, char c)
+Board_movePlayer(board_t *board, player_t player, unsigned char r, char c)
 {
   if (player == PLAYER1)
   {
-    board->player1 = locToInt(r, c, SQUARES_SIZE);
+    board->player1 = rcToLoc(r, c);
   }
   else
   {
-    board->player2 = locToInt(r, c, SQUARES_SIZE);;
+    board->player2 = rcToLoc(r, c);;
   }
   return true;
 }
 
 
 bool
-Board_validWall(board_t *board, walldir_t walldir, int r, char c)
+Board_validWall(board_t *board, walldir_t walldir, unsigned char r, char c)
 {
   // printf("%i %c\n", r, c);
   if (Board_isWallAtCorner(board, r, c)) return false;
 
-  int n = locToInt(r, c, SQUARES_SIZE);
+  int n = rcToLoc(r, c);
   // printf("%i\n", n);
 
-  if (walldir == HORIZONTAL && Graph_hasEdge(board->squares, n, n+SQUARES_SIZE) && Graph_hasEdge(board->squares, n+1, n+1+SQUARES_SIZE))
+  if (walldir == HORIZONTAL && Graph_hasEdge(&(board->squares), n, n+SQUARES_SIZE) && Graph_hasEdge(&(board->squares), n+1, n+1+SQUARES_SIZE))
     return true;
-  else if (walldir == VERTICAL && Graph_hasEdge(board->squares, n, n+1) && Graph_hasEdge(board->squares, n+SQUARES_SIZE, n+SQUARES_SIZE+1))
+  else if (walldir == VERTICAL && Graph_hasEdge(&(board->squares), n, n+1) && Graph_hasEdge(&(board->squares), n+SQUARES_SIZE, n+SQUARES_SIZE+1))
     return true;
   else
     return false;

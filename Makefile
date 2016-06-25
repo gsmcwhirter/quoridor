@@ -3,7 +3,7 @@ SRC?=src
 DEPS=$(SRC)/deps
 BUILD=build
 
-CFLAGS=-O2 -Wall -Wextra -Isrc -Isrc/deps -Isrc/lib
+CFLAGS=-O2 -pg -std=c11 -Wall -Wextra -Isrc -Isrc/deps -Isrc/lib
 # LIBSOURCES=$(wildcard $(SRC)/lib/*.c $(DEPS)$(DEPS)/term/term.c $(DEPS)/commander/commander.c $(DEPS)/strdup/strdup.c $(DEPS)/case/case.c $(DEPS)/occurrences/occurrences.c $(DEPS)/trim/trim.c $(DEPS)/strsplit/strsplit.c)
 LIBSOURCES=$(wildcard $(SRC)/lib/*.c $(DEPS)/**/*.c)
 

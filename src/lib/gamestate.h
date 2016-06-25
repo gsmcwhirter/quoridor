@@ -10,10 +10,10 @@
 #define PLAYER2_TARGET 8
 
 typedef struct GameState {
-  board_t *board;
+  board_t board;
   player_t player;
-  int player1_walls;
-  int player2_walls;
+  unsigned char player1_walls;
+  unsigned char player2_walls;
 } gamestate_t;
 
 typedef enum MoveResult {
@@ -31,8 +31,9 @@ typedef enum MoveResult {
 
 char * moveDescription(moveresult_t res);
 
-gamestate_t * GameState_create(board_t *board, player_t player);
-gamestate_t * GameState_clone(const gamestate_t *state);
+// gamestate_t * GameState_create(board_t *board, player_t player);
+void GameState_init(gamestate_t *state, board_t *board, player_t player);
+gamestate_t * GameState_clone(const gamestate_t *state, gamestate_t * newstate);
 void GameState_destroy(gamestate_t *state);
 void GameState_print(gamestate_t *state, player_t as_player);
 moveresult_t GameState_applyMove(gamestate_t *state, gamemove_t *move);

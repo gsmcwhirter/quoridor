@@ -3,37 +3,24 @@
 
 #include <stdbool.h>
 
-typedef struct AdjList {
-  int total_nodes;
-  int degree;
-  int max_degree;
-  int* neighbors;
-} adjlist_t;
+#include "adjlist.h"
 
 typedef struct Graph {
-  int nodes;
-  int max_degree;
-  int *node_names;
-  adjlist_t **adj_lists;
+  unsigned char nodes;
+  unsigned char max_degree;
+  unsigned char node_names[81];
+  adjlist_t adj_lists[81];
 } graph_t;
 
-adjlist_t * AdjList_create(const int total_nodes);//, const int max_degree);
-adjlist_t * AdjList_clone(adjlist_t *al);
-void AdjList_addNeighbor(adjlist_t *al, int n);
-void AdjList_sortNeighbors(adjlist_t *al);
-bool AdjList_hasNeighbor(adjlist_t *al, int n);
-int AdjList_findNeighbor(adjlist_t *al, int n);
-void AdjList_removeNeighbor(adjlist_t *al, int n);
-void AdjList_destroy(adjlist_t *al);
-void AdjList_relabel(adjlist_t *al, int num_nodes, int *nodes);
-
-graph_t * Graph_create(const int nodes, const int max_degree);
-graph_t * Graph_clone(graph_t *graph);
-graph_t * Graph_subgraph(graph_t *graph, int size, int *nodes);
-void Graph_addEdge(graph_t *graph, int n1, int n2);
-bool Graph_hasEdge(graph_t *graph, int n1, int n2);
-void Graph_removeEdge(graph_t *graph, int n1, int n2);
+// graph_t * Graph_create(const unsigned char nodes, const unsigned char max_degree);
+void Graph_init(graph_t *g, const unsigned char nodes, const unsigned char max_degree);
+graph_t * Graph_clone(const graph_t *graph, graph_t *g2);
+void Graph_addEdge(graph_t *graph, unsigned char n1, unsigned char n2);
+bool Graph_hasEdge(graph_t *graph, unsigned char n1, unsigned char n2);
+void Graph_removeEdge(graph_t *graph, unsigned char n1, unsigned char n2);
 void Graph_destroy(graph_t *graph);
-adjlist_t * Graph_neighbors(graph_t *graph, int n);
+adjlist_t * Graph_neighbors(graph_t *graph, unsigned char n);
+
+// graph_t * Graph_subgraph(graph_t *graph, int size, int *nodes);
 
 #endif

@@ -1,10 +1,12 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <stdbool.h>
+
+#include "term/term.h"
+
 #include "board.h"
 #include "gamestate.h"
 #include "search.h"
-#include "term/term.h"
 
 
 char *
@@ -27,24 +29,39 @@ moveDescription(moveresult_t res)
 }
 
 
-gamestate_t *
-GameState_create(board_t *board, player_t player)
+// gamestate_t *
+// GameState_create(board_t *board, player_t player)
+// {
+//   gamestate_t *gamestate = malloc(sizeof(gamestate_t));
+//
+//   GameState_init(gamestate, board, player);
+//
+//   return gamestate;
+// }
+
+void
+GameState_init(gamestate_t *gamestate, board_t *board, player_t player)
 {
-  gamestate_t *gamestate = malloc(sizeof(gamestate_t));
-  gamestate->board = board;
+  if (board != NULL)
+    Board_clone(&(gamestate->board), board);
+  else
+    Board_init(&(gamestate->board));
+
   gamestate->player = player;
   gamestate->player1_walls = DEFAULT_WALLS;
   gamestate->player2_walls = DEFAULT_WALLS;
-
-  return gamestate;
 }
 
 
 gamestate_t *
-GameState_clone(const gamestate_t *state)
+GameState_clone(const gamestate_t *state, gamestate_t * newstate)
 {
-  gamestate_t * newstate = malloc(sizeof(gamestate_t));
-  newstate->board = Board_clone(state->board);
+  if (newstate == NULL)
+  {
+    newstate = malloc(sizeof(gamestate_t));
+  }
+
+  Board_clone(&(state->board), &(newstate->board));
   newstate->player = state->player;
   newstate->player1_walls = state->player1_walls;
   newstate->player2_walls = state->player2_walls;
@@ -58,7 +75,7 @@ GameState_destroy(gamestate_t *state)
 {
   if (state != NULL)
   {
-    Board_destroy(state->board);
+    Board_destroy(&(state->board));
     free(state);
   }
 }
@@ -67,7 +84,7 @@ GameState_destroy(gamestate_t *state)
 void
 GameState_print(gamestate_t *state, player_t as_player)
 {
-  Board_print(state->board, as_player);
+  Board_print(&(state->board), as_player);
   printf("\n");
   // term_color("grey");
   printf("Turn of player: ");
@@ -113,7 +130,7 @@ GameState_moveCurrentPlayer(gamestate_t *state, int r, char c)
   moveresult_t res = GameState_legalMove(state, state->player, r, c);
   if (res == OK)
   {
-    Board_movePlayer(state->board, state->player, r, c);
+    Board_movePlayer(&(state->board), state->player, r, c);
   }
   return res;
 }
@@ -121,59 +138,59 @@ GameState_moveCurrentPlayer(gamestate_t *state, int r, char c)
 moveresult_t
 GameState_legalMove(gamestate_t *state, player_t player, int r, char c)
 {
-  int loc, loc_other, loc_inter;
+  unsigned char loc, loc_other, loc_inter;
   if (player == PLAYER1)
   {
-    loc = state->board->player1;
-    loc_other = state->board->player2;
+    loc = state->board.player1;
+    loc_other = state->board.player2;
   }
   else
   {
-    loc = state->board->player2;
-    loc_other = state->board->player1;
+    loc = state->board.player2;
+    loc_other = state->board.player1;
   }
 
-  if (locToInt(r, c, SQUARES_SIZE) == loc_other)
+  if (rcToLoc(r, c) == loc_other)
     return MOVE_BLOCKED;
 
-  int loc_r = intToRow(loc, SQUARES_SIZE);
-  char loc_c = 'a' + intToCol(loc, SQUARES_SIZE);
+  unsigned char loc_r = locToRow(loc);
+  char loc_c = 'a' + locToCol(loc);
 
-  if(!Board_wallBetween(state->board, loc_r, loc_c, r, c))
+  if(!Board_wallBetween(&(state->board), loc_r, loc_c, r, c))
     return OK;
   // jump code
-  else if (abs(loc_r - r) == 1 && abs((int)loc_c - (int)c) == 1)
+  else if (abs(loc_r - r) == 1 && abs(loc_c - c) == 1)
   {
-    int diff = (int)c - (int)loc_c;
-    loc_inter = locToInt(loc_r, c, SQUARES_SIZE);
+    char diff = c - loc_c;
+    loc_inter = rcToLoc(loc_r, c);
     if (loc_other == loc_inter &&
-        Board_wallBetween(state->board, loc_r, c, loc_r, c+diff) &&
-        !Board_wallBetween(state->board, loc_r, loc_c, loc_r, c) &&
-        !Board_wallBetween(state->board, loc_r, c, r, c)) return OK;
+        Board_wallBetween(&(state->board), loc_r, c, loc_r, c+diff) &&
+        !Board_wallBetween(&(state->board), loc_r, loc_c, loc_r, c) &&
+        !Board_wallBetween(&(state->board), loc_r, c, r, c)) return OK;
 
     diff = r - loc_r;
-    loc_inter = locToInt(r, loc_c, SQUARES_SIZE);
+    loc_inter = rcToLoc(r, loc_c);
     if (loc_other == loc_inter &&
-        Board_wallBetween(state->board, r, loc_c, r+diff, loc_c) &&
-        !Board_wallBetween(state->board, loc_r, loc_c, r, loc_c) &&
-        !Board_wallBetween(state->board, r, loc_c, r, c)) return OK;
+        Board_wallBetween(&(state->board), r, loc_c, r+diff, loc_c) &&
+        !Board_wallBetween(&(state->board), loc_r, loc_c, r, loc_c) &&
+        !Board_wallBetween(&(state->board), r, loc_c, r, c)) return OK;
 
     return ILLEGAL_JUMP;
   }
   else if (loc_r - r == 0 && abs((int)loc_c - (int)c) == 2)
   {
-    loc_inter = locToInt(loc_r, ((int)loc_c + (int)c)/2, SQUARES_SIZE);
+    loc_inter = rcToLoc(loc_r, (loc_c + c)/2);
     if (loc_other != loc_inter) return ILLEGAL_JUMP;
-    if (Board_wallBetween(state->board, loc_r, loc_c, r, (char)(((int)loc_c + (int)c)/2))) return ILLEGAL_JUMP;
-    if (Board_wallBetween(state->board, r, c, r, (char)(((int)loc_c + (int)c)/2))) return ILLEGAL_JUMP;
+    if (Board_wallBetween(&(state->board), loc_r, loc_c, r, ((loc_c + c)/2))) return ILLEGAL_JUMP;
+    if (Board_wallBetween(&(state->board), r, c, r, ((loc_c + c)/2))) return ILLEGAL_JUMP;
     return OK;
   }
   else if ((int)loc_c - (int)c == 0 && abs(loc_r - r) == 2)
   {
-    loc_inter = locToInt((loc_r + r)/2, loc_c, SQUARES_SIZE);
+    loc_inter = rcToLoc((loc_r + r)/2, loc_c);
     if (loc_other != loc_inter) return ILLEGAL_JUMP;
-    if (Board_wallBetween(state->board, loc_r, loc_c, (loc_r + r)/2, c)) return ILLEGAL_JUMP;
-    if (Board_wallBetween(state->board, r, c, (loc_r + r)/2, c)) return ILLEGAL_JUMP;
+    if (Board_wallBetween(&(state->board), loc_r, loc_c, (loc_r + r)/2, c)) return ILLEGAL_JUMP;
+    if (Board_wallBetween(&(state->board), r, c, (loc_r + r)/2, c)) return ILLEGAL_JUMP;
     return OK;
   }
   else
@@ -193,7 +210,7 @@ GameState_addWallCurrentPlayer(gamestate_t *state, walldir_t walldir, int r, cha
     return res;
   }
 
-  if (!Board_addWall(state->board, walldir, r, c))
+  if (!Board_addWall(&(state->board), walldir, r, c))
   {
     // printf("fail2\n");
     return WALL_FAILED;
@@ -218,11 +235,12 @@ GameState_legalWall(gamestate_t *state, player_t player, walldir_t walldir, int 
   if (player == PLAYER1 && state->player1_walls == 0) return NOT_ENOUGH_WALLS;
   if (player == PLAYER2 && state->player2_walls == 0) return NOT_ENOUGH_WALLS;
   // printf("fail3\n");
-  if (!Board_validWall(state->board, walldir, r, c)) return WALL_BLOCKED;
-  board_t *board_after = Board_clone(state->board);
-  Board_addWall(board_after, walldir, r, c);
+  if (!Board_validWall(&(state->board), walldir, r, c)) return WALL_BLOCKED;
+  board_t board_after;
+  Board_clone(&(state->board), &(board_after));
+  Board_addWall(&(board_after), walldir, r, c);
   searchresult_t * res = SearchResult_createWithSize(1, 0, 1);
-  Search_bfs_all(res, board_after, PLAYER1, state->board->player1);
+  Search_bfs_all(res, &(board_after), PLAYER1, state->board.player1);
 
   moveresult_t ret = OK;
   if (res->count == 0)
@@ -233,7 +251,7 @@ GameState_legalWall(gamestate_t *state, player_t player, walldir_t walldir, int 
   {
     SearchResult_destroy(res, true);
     res = SearchResult_createWithSize(1, 0, 1);
-    Search_bfs_all(res, board_after, PLAYER2, state->board->player2);
+    Search_bfs_all(res, &(board_after), PLAYER2, state->board.player2);
 
     if (res->count == 0)
     {
@@ -242,7 +260,6 @@ GameState_legalWall(gamestate_t *state, player_t player, walldir_t walldir, int 
   }
 
   SearchResult_destroy(res, true);
-  Board_destroy(board_after);
   return ret;
 }
 
@@ -253,7 +270,7 @@ GameState_isGameOver(gamestate_t *state)
   // int p1target = locToInt(9, 'a', SQUARES_SIZE);
   // int p2target = locToInt(1, 'a' + SQUARES_SIZE - 1, SQUARES_SIZE);
 
-  if (state->board->player1 >= PLAYER1_TARGET || state->board->player2 <= PLAYER2_TARGET)
+  if (state->board.player1 >= PLAYER1_TARGET || state->board.player2 <= PLAYER2_TARGET)
     return true;
   else
     return false;

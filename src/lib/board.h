@@ -32,26 +32,27 @@ typedef struct Wall {
 } wall_t;
 
 typedef struct Board {
-  graph_t *squares;
+  graph_t squares;
   unsigned long long wall_slots; // at least 64 bits each, need 64
-  int player1; //node number
-  int player2; // node number
+  unsigned char player1; //node number
+  unsigned char player2; // node number
 } board_t;
 
-int locToInt(int r, char c, int row_size);
-int intToRow(int loc, int row_size);
-int intToCol(int loc, int row_size);
+unsigned char rcToLoc(unsigned char r, char c);
+unsigned char locToRow(unsigned char loc);
+unsigned char locToCol(unsigned char loc);
 
-board_t * Board_create();
-board_t * Board_clone(const board_t *board);
+// board_t * Board_create();
+void Board_init(board_t *board);
+board_t * Board_clone(const board_t *board, board_t *new_board);
 void Board_destroy(board_t *board);
-bool Board_isWallAtCorner(board_t *board, int r, char c);
-void Board_setWallAtCorner(board_t *board, int r, char c);
+bool Board_isWallAtCorner(board_t *board, unsigned char r, char c);
+void Board_setWallAtCorner(board_t *board, unsigned char r, char c);
 void Board_print(board_t *board, player_t as_player);
-bool Board_wallBetween(board_t *board, int r1, char c1, int r2, char c2);
-bool Board_addWall(board_t *board, walldir_t walldir, int r, char c);
-bool Board_movePlayer(board_t *board, player_t player, int r, char c);
-bool Board_validWall(board_t *board, walldir_t walldir, int r, char c);
+bool Board_wallBetween(board_t *board, unsigned char r1, char c1, unsigned char r2, char c2);
+bool Board_addWall(board_t *board, walldir_t walldir, unsigned char r, char c);
+bool Board_movePlayer(board_t *board, player_t player, unsigned char r, char c);
+bool Board_validWall(board_t *board, walldir_t walldir, unsigned char r, char c);
 
 
 #endif
