@@ -1,7 +1,8 @@
 #include <stdio.h>
 
-#include "move.h"
 #include "strdup/strdup.h"
+
+#include "move.h"
 
 gamemove_t *
 GameMove_create(player_t player, int row, char col, walldir_t wall, char *srep)
@@ -25,15 +26,6 @@ GameMove_clone(gamemove_t *move)
 void
 GameMove_print(gamemove_t *move)
 {
-  // printf("%c%i", move->col, move->row);
-  // if (move->wall == HORIZONTAL)
-  // {
-  //   printf("h");
-  // }
-  // else if (move->wall == VERTICAL)
-  // {
-  //   printf("v");
-  // }
   printf("%s", move->srep);
 }
 

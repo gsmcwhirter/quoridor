@@ -34,7 +34,7 @@ char * moveDescription(moveresult_t res);
 // gamestate_t * GameState_create(board_t *board, player_t player);
 void GameState_init(gamestate_t *state, board_t *board, player_t player);
 gamestate_t * GameState_clone(const gamestate_t *state, gamestate_t * newstate);
-void GameState_destroy(gamestate_t *state);
+// void GameState_destroy(gamestate_t *state);
 void GameState_print(gamestate_t *state, player_t as_player);
 moveresult_t GameState_applyMove(gamestate_t *state, gamemove_t *move);
 moveresult_t GameState_moveCurrentPlayer(gamestate_t *state, int r, char c);

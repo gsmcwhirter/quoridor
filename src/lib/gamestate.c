@@ -29,16 +29,6 @@ moveDescription(moveresult_t res)
 }
 
 
-// gamestate_t *
-// GameState_create(board_t *board, player_t player)
-// {
-//   gamestate_t *gamestate = malloc(sizeof(gamestate_t));
-//
-//   GameState_init(gamestate, board, player);
-//
-//   return gamestate;
-// }
-
 void
 GameState_init(gamestate_t *gamestate, board_t *board, player_t player)
 {
@@ -71,22 +61,10 @@ GameState_clone(const gamestate_t *state, gamestate_t * newstate)
 
 
 void
-GameState_destroy(gamestate_t *state)
-{
-  if (state != NULL)
-  {
-    Board_destroy(&(state->board));
-    free(state);
-  }
-}
-
-
-void
 GameState_print(gamestate_t *state, player_t as_player)
 {
   Board_print(&(state->board), as_player);
   printf("\n");
-  // term_color("grey");
   printf("Turn of player: ");
   if (state->player == PLAYER1)
     term_color(PLAYER_1_COLOR);
@@ -206,13 +184,11 @@ GameState_addWallCurrentPlayer(gamestate_t *state, walldir_t walldir, int r, cha
   moveresult_t res = GameState_legalWall(state, state->player, walldir, r, c);
   if (res != OK)
   {
-    // printf("fail1\n");
     return res;
   }
 
   if (!Board_addWall(&(state->board), walldir, r, c))
   {
-    // printf("fail2\n");
     return WALL_FAILED;
   }
 
@@ -234,32 +210,30 @@ GameState_legalWall(gamestate_t *state, player_t player, walldir_t walldir, int 
 {
   if (player == PLAYER1 && state->player1_walls == 0) return NOT_ENOUGH_WALLS;
   if (player == PLAYER2 && state->player2_walls == 0) return NOT_ENOUGH_WALLS;
-  // printf("fail3\n");
   if (!Board_validWall(&(state->board), walldir, r, c)) return WALL_BLOCKED;
   board_t board_after;
   Board_clone(&(state->board), &(board_after));
   Board_addWall(&(board_after), walldir, r, c);
-  searchresult_t * res = SearchResult_createWithSize(1, 0, 1);
-  Search_bfs_all(res, &(board_after), PLAYER1, state->board.player1);
+  searchresult_t res;
+  SearchResult_init(&res, 1, 0);
+  Search_bfs_all(&res, &(board_after), PLAYER1, state->board.player1);
 
   moveresult_t ret = OK;
-  if (res->count == 0)
+  if (res.count == 0)
   {
     ret = PATH_BLOCKED;
   }
   else
   {
-    SearchResult_destroy(res, true);
-    res = SearchResult_createWithSize(1, 0, 1);
-    Search_bfs_all(res, &(board_after), PLAYER2, state->board.player2);
+    SearchResult_init(&res, 1, 0);
+    Search_bfs_all(&res, &(board_after), PLAYER2, state->board.player2);
 
-    if (res->count == 0)
+    if (res.count == 0)
     {
       ret = PATH_BLOCKED;
     }
   }
 
-  SearchResult_destroy(res, true);
   return ret;
 }
 
@@ -267,14 +241,10 @@ GameState_legalWall(gamestate_t *state, player_t player, walldir_t walldir, int 
 bool
 GameState_isGameOver(gamestate_t *state)
 {
-  // int p1target = locToInt(9, 'a', SQUARES_SIZE);
-  // int p2target = locToInt(1, 'a' + SQUARES_SIZE - 1, SQUARES_SIZE);
-
   if (state->board.player1 >= PLAYER1_TARGET || state->board.player2 <= PLAYER2_TARGET)
     return true;
   else
     return false;
-
 }
 
 

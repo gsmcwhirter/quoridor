@@ -26,17 +26,6 @@ locToCol(unsigned char loc)
   return loc % SQUARES_SIZE;
 }
 
-
-// board_t *
-// Board_create()
-// {
-//   board_t *board = malloc(sizeof(board_t));
-//
-//   Board_init(board);
-//
-//   return board;
-// }
-
 void
 Board_init(board_t *board)
 {
@@ -85,17 +74,6 @@ Board_clone(const board_t *board, board_t *new_board)
 }
 
 
-void
-Board_destroy(board_t *board)
-{
-  // if (board != NULL)
-  // {
-  //   Graph_destroy(&(board->squares));
-  //   free(board);
-  // }
-}
-
-
 bool
 Board_isWallAtCorner(board_t *board, unsigned char r, char col)
 {
@@ -125,16 +103,6 @@ Board_setWallAtCorner(board_t *board, unsigned char r, char col)
     board->wall_slots = (board->wall_slots | (1ll<<bit));
   }
 }
-
-// void
-// printWallSlots(unsigned long long ws)
-// {
-//   for (int i = 63; i >= 0; i--)
-//   {
-//     printf("%i", (ws & (1ll<<i))>0ll);
-//   }
-//   printf("\n");
-// }
 
 void
 Board_printHwall(board_t *board, unsigned char r, char col)
@@ -398,11 +366,9 @@ Board_movePlayer(board_t *board, player_t player, unsigned char r, char c)
 bool
 Board_validWall(board_t *board, walldir_t walldir, unsigned char r, char c)
 {
-  // printf("%i %c\n", r, c);
   if (Board_isWallAtCorner(board, r, c)) return false;
 
   int n = rcToLoc(r, c);
-  // printf("%i\n", n);
 
   if (walldir == HORIZONTAL && Graph_hasEdge(&(board->squares), n, n+SQUARES_SIZE) && Graph_hasEdge(&(board->squares), n+1, n+1+SQUARES_SIZE))
     return true;

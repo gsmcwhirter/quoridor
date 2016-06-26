@@ -1,8 +1,8 @@
 #include <stdio.h>
 
-#include "history.h"
-
 #include "term/term.h"
+
+#include "history.h"
 
 
 
@@ -42,7 +42,6 @@ GameHistory_push(gamehistory_t *history, gamemove_t *move)
   {
     tail = tail->next;
   }
-  // assert tail->move == NULL;
 
   tail->next = GameHistory_create();
   tail->next->prev = tail;

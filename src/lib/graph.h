@@ -12,15 +12,12 @@ typedef struct Graph {
   adjlist_t adj_lists[81];
 } graph_t;
 
-// graph_t * Graph_create(const unsigned char nodes, const unsigned char max_degree);
 void Graph_init(graph_t *g, const unsigned char nodes, const unsigned char max_degree);
 graph_t * Graph_clone(const graph_t *graph, graph_t *g2);
 void Graph_addEdge(graph_t *graph, unsigned char n1, unsigned char n2);
 bool Graph_hasEdge(graph_t *graph, unsigned char n1, unsigned char n2);
 void Graph_removeEdge(graph_t *graph, unsigned char n1, unsigned char n2);
-void Graph_destroy(graph_t *graph);
 adjlist_t * Graph_neighbors(graph_t *graph, unsigned char n);
 
-// graph_t * Graph_subgraph(graph_t *graph, int size, int *nodes);
 
 #endif

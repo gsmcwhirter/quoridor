@@ -8,8 +8,8 @@ gamestate
 search
 visited
 path
-move
 history
+search
 
 ai
-search
+move

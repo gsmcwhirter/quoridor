@@ -42,10 +42,8 @@ unsigned char rcToLoc(unsigned char r, char c);
 unsigned char locToRow(unsigned char loc);
 unsigned char locToCol(unsigned char loc);
 
-// board_t * Board_create();
 void Board_init(board_t *board);
 board_t * Board_clone(const board_t *board, board_t *new_board);
-void Board_destroy(board_t *board);
 bool Board_isWallAtCorner(board_t *board, unsigned char r, char c);
 void Board_setWallAtCorner(board_t *board, unsigned char r, char c);
 void Board_print(board_t *board, player_t as_player);
