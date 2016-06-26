@@ -4,6 +4,12 @@
 #include "board.h"
 #include "path.h"
 
+// this is 127 << 8
+// #define LENGTH_MASK 32512ll
+#define LENGTH_MASK 127
+
+// this is 82 << 8
+#define EMPTY_EXISTS_QUEUE_CODE 20992ll
 
 typedef struct SearchQueue {
   unsigned char start;
@@ -19,12 +25,12 @@ void SearchQueue_print(searchqueue_t *q);
 typedef struct ExistsQueue {
   unsigned char start;
   unsigned char length;
-  int paths[SQUARES_SIZE_SQ];
+  unsigned char paths[SQUARES_SIZE_SQ];
 } existsqueue_t;
 
 void ExistsQueue_init(existsqueue_t *q);
 bool ExistsQueue_push(existsqueue_t *queue, int loc);
-int ExistsQueue_shift(existsqueue_t *queue);
+unsigned char ExistsQueue_shift(existsqueue_t *queue);
 void ExistsQueue_print(existsqueue_t *q);
 
 #endif

@@ -10,9 +10,6 @@
 #include "visited.h"
 #include "search_queue.h"
 
-// this is 127 << 8
-#define LENGTH_MASK 32512
-
 
 void
 SearchResult_init(searchresult_t *res, unsigned char results, unsigned char bfs_margin)
@@ -148,7 +145,7 @@ Search_bfs_all(searchresult_t *res, board_t *board, player_t player, unsigned ch
           #ifdef DEBUG
             printf("setting neighbor as visited...\n");
           #endif
-          VisitedRecord_setVisited(&visited, neighbor);
+          VisitedRecord_setVisited(&visited, neighbor, 1); //the 1 could be replaced, but no need here
 
           #ifdef DEBUG
             printf("checking for path end...\n");
@@ -226,16 +223,18 @@ Search_bfs_exists(searchresult_t *res, board_t *board, player_t player, unsigned
   #ifdef DEBUG
     printf("Initializing path...\n");
   #endif
-  int curr;
+  // int curr;
+  unsigned char curr_sq;
   #ifdef DEBUG
     printf("Starting path...\n");
   #endif
-  curr = start;
+  curr_sq = start;
+  VisitedRecord_setVisited(&visited, curr_sq, 0);
 
   #ifdef DEBUG
     printf("Starting queue...\n");
   #endif
-  ExistsQueue_push(&queue, curr);
+  ExistsQueue_push(&queue, curr_sq);
 
   #ifdef DEBUG
     ExistsQueue_print(&queue);
@@ -243,13 +242,19 @@ Search_bfs_exists(searchresult_t *res, board_t *board, player_t player, unsigned
 
   adjlist_t *neighbors;
   unsigned char neighbor;
-  int lbits = 82;
-  unsigned char curr_sq;
+  char curr_len;
+  // unsigned char curr_sq;
 
-  while ((curr = ExistsQueue_shift(&queue)) < SQUARES_SIZE_SQ)
+  // while ((curr = ExistsQueue_shift(&queue)) < EMPTY_EXISTS_QUEUE_CODE)
+  while ((curr_sq = ExistsQueue_shift(&queue)) < SQUARES_SIZE_SQ)
   {
-    lbits = curr & LENGTH_MASK;
-    curr_sq = curr & ~LENGTH_MASK;
+    curr_len = VisitedRecord_distance(&visited, curr_sq);
+    // curr_sq = curr & LENGTH_MASK;
+    #ifdef DEBUG
+      printf("Curr: %i\n", curr);
+      printf("CurrSq: %i\n", curr_sq);
+    #endif
+
     #ifdef DEBUG
       printf("Loop iterating...\n");
       printf("now considering: %i\n", curr_sq);
@@ -283,36 +288,28 @@ Search_bfs_exists(searchresult_t *res, board_t *board, player_t player, unsigned
         #ifdef DEBUG
           printf("setting neighbor as visited...\n");
         #endif
-        VisitedRecord_setVisited(&visited, neighbor);
+        VisitedRecord_setVisited(&visited, neighbor, curr_len + 1);
 
         #ifdef DEBUG
           printf("checking for path end...\n");
         #endif
         if ((player == PLAYER1 && neighbor >= PLAYER1_TARGET) || (player == PLAYER2 && neighbor <= PLAYER2_TARGET))
         {
+          #ifdef DEBUG
+            printf("reached the end. length=%i\n", curr_len + 1);
+            printf("CurrSq: %i\n", curr_sq);
+          #endif
           res->count = 1;
-          res->shortest_length = lbits >> 8;
-          // #ifdef DEBUG
-          //   printf("reached the end. length=%i\n", curr.length);
-          //   printf("adding path to the results...\n");
-          // #endif
-          // if (!SearchResult_add(res, &curr))
-          // {
-          //   #ifdef DEBUG
-          //     printf("could not add the path to results. too long?\n");
-          //   #endif
-          // }
-          // #ifdef DEBUG
-          // else
-          //   printf("path added to results.\n");
-          // #endif
+          res->shortest_length = curr_len + 1; //((curr & ~LENGTH_MASK) >> 8) + 1;
+          break;
         }
         else
         {
           #ifdef DEBUG
             printf("adding square to the queue...\n");
           #endif
-          ExistsQueue_push(&queue, lbits + 128 + neighbor);
+          // ExistsQueue_push(&queue, ((curr + 256) & ~LENGTH_MASK) + neighbor);
+          ExistsQueue_push(&queue, neighbor);
           #ifdef DEBUG
             printf("done.\n");
             printf("current queue length is %i\n", queue.length);

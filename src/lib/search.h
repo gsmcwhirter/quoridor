@@ -14,7 +14,7 @@ typedef struct SearchResult {
   unsigned char results_desired;
   unsigned char bfs_margin;
   unsigned char max_count;
-  unsigned char shortest_length;
+  int shortest_length;
   path_t shortest_paths[MAX_SEARCH_RESULTS];
 } searchresult_t;
 

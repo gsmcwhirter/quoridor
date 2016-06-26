@@ -8,6 +8,8 @@
 #include "gamestate.h"
 #include "search.h"
 
+#define ITERATIONS 1000000l
+
 int
 main()
 {
@@ -21,9 +23,23 @@ main()
   timer_t timer4;
 
   searchresult_t res;
+
+  #ifdef SEVERAL
+    printf("RUNNING SEVERAL TESTS (%li)\n\n", ITERATIONS);
+  #endif
+
+  /// Player 1 Full
   SearchResult_init(&res, 1, 0);
   timer_start(&timer1);
-  Search_bfs_all(&res, &(state.board), PLAYER1, state.board.player1);
+  #ifdef SEVERAL
+  for (long i = 0; i < ITERATIONS; i++)
+  {
+    SearchResult_reset(&res);
+  #endif
+    Search_bfs_all(&res, &(state.board), PLAYER1, state.board.player1);
+  #ifdef SEVERAL
+  }
+  #endif
   timer_pause(&timer1);
 
   printf("Full player 1\n");
@@ -39,10 +55,20 @@ main()
     printf("\t");
     Path_print(&(res.shortest_paths[i]));
   }
+  /// End Player 1 Full
 
+  /// Player 1 Exists
   SearchResult_init(&res, 1, 0);
   timer_start(&timer2);
-  Search_bfs_exists(&res, &(state.board), PLAYER1, state.board.player1);
+  #ifdef SEVERAL
+  for (long i = 0; i < ITERATIONS; i++)
+  {
+    SearchResult_reset(&res);
+  #endif
+    Search_bfs_exists(&res, &(state.board), PLAYER1, state.board.player1);
+  #ifdef SEVERAL
+  }
+  #endif
   timer_pause(&timer2);
 
   printf("Exists player 1\n");
@@ -51,10 +77,20 @@ main()
 
   printf("Shortest Paths: %i (max: %i)\n", res.count, res.results_desired);
   printf("Shortest Path Length: %i\n", res.shortest_length);
+  /// End Player 1 Exists
 
+  /// Player 2 Full
   SearchResult_init(&res, 1, 0);
   timer_start(&timer3);
-  Search_bfs_all(&res, &(state.board), PLAYER2, state.board.player2);
+  #ifdef SEVERAL
+  for (long i = 0; i < ITERATIONS; i++)
+  {
+    SearchResult_reset(&res);
+  #endif
+    Search_bfs_all(&res, &(state.board), PLAYER2, state.board.player2);
+  #ifdef SEVERAL
+  }
+  #endif
   timer_pause(&timer3);
 
   printf("Full player 2\n");
@@ -70,10 +106,20 @@ main()
     printf("\t");
     Path_print(&(res.shortest_paths[i]));
   }
+  /// End Player 2 Full
 
+  /// Player 2 Exists
   SearchResult_init(&res, 1, 0);
   timer_start(&timer4);
-  Search_bfs_exists(&res, &(state.board), PLAYER2, state.board.player2);
+  #ifdef SEVERAL
+  for (long i = 0; i < ITERATIONS; i++)
+  {
+    SearchResult_reset(&res);
+  #endif
+    Search_bfs_exists(&res, &(state.board), PLAYER2, state.board.player2);
+  #ifdef SEVERAL
+  }
+  #endif
   timer_pause(&timer4);
 
   printf("Exists player 2\n");
@@ -82,25 +128,28 @@ main()
 
   printf("Shortest Paths: %i (max: %i)\n", res.count, res.results_desired);
   printf("Shortest Path Length: %i\n", res.shortest_length);
+  /// End Player 2 Exists
 
-  // Board_addWall(&(state.board), VERTICAL, 6, 'g');
-  // Board_addWall(&(state.board), HORIZONTAL, 3, 'e');
-  // Board_movePlayer(&(state.board), PLAYER1, 3, 'e');
-  // Board_movePlayer(&(state.board), PLAYER2, 6, 'g');
-  //
-  // GameState_print(&state, PLAYER1);
-  //
-  // SearchResult_init(&res, 0, 2);
-  // Search_bfs_all(&res, &(state.board), PLAYER1, state.board.player1);
-  //
-  // printf("Shortest Paths: %i (max: %i)\n", res.count, res.results_desired);
-  // printf("Shortest Path Length: %i\n", res.shortest_length);
-  // printf("Shortest Paths:\n");
-  // for (int i = 0; i < res.count; i++)
-  // {
-  //   printf("\t");
-  //   Path_print(&(res.shortest_paths[i]));
-  // }
+  /// Test Moves etc.
+  Board_addWall(&(state.board), VERTICAL, 6, 'g');
+  Board_addWall(&(state.board), HORIZONTAL, 3, 'e');
+  Board_movePlayer(&(state.board), PLAYER1, 3, 'e');
+  Board_movePlayer(&(state.board), PLAYER2, 6, 'g');
+
+  GameState_print(&state, PLAYER1);
+
+  SearchResult_init(&res, 0, 2);
+  Search_bfs_all(&res, &(state.board), PLAYER1, state.board.player1);
+
+  printf("Shortest Paths: %i (max: %i)\n", res.count, res.results_desired);
+  printf("Shortest Path Length: %i\n", res.shortest_length);
+  printf("Shortest Paths:\n");
+  for (int i = 0; i < res.count; i++)
+  {
+    printf("\t");
+    Path_print(&(res.shortest_paths[i]));
+  }
+  /// End Test Moves etc.
 
   return 0;
 }

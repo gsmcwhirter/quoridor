@@ -121,10 +121,10 @@ ExistsQueue_push(existsqueue_t *queue, int loc)
   return true;
 }
 
-int
+unsigned char
 ExistsQueue_shift(existsqueue_t *queue)
 {
-  char ret;
+  unsigned char ret;
   #ifdef DEBUG
     printf("trying to shift element off the queue...\n");
     printf("queue has start %i and length %i...\n", queue->start, queue->length);
@@ -134,6 +134,7 @@ ExistsQueue_shift(existsqueue_t *queue)
     #ifdef DEBUG
       printf("no elements in the queue...\n");
     #endif
+    // return EMPTY_EXISTS_QUEUE_CODE;
     return SQUARES_SIZE_SQ;
   }
 
@@ -166,6 +167,7 @@ ExistsQueue_print(existsqueue_t *q)
   {
     ind = q->start + i;
 
+    // printf(" %i,%i", q->paths[ind] & LENGTH_MASK, (q->paths[ind] & ~LENGTH_MASK)>>8);
     printf(" %i", q->paths[ind]);
   }
   printf("\n");

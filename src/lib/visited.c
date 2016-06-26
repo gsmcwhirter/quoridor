@@ -17,47 +17,51 @@
 void
 VisitedRecord_init(visitedrec_t *rec)
 {
-  rec->rec1 = 0;
-  rec->rec2 = 0;
+  for (int i = 0; i < SQUARES_SIZE_SQ; i++)
+  {
+    rec->rec[i] = -1;
+  }
+  // rec->rec1 = 0;
+  // rec->rec2 = 0;
 }
 
 
 bool
 VisitedRecord_visited(visitedrec_t *rec, unsigned char square)
 {
-  unsigned long long r = rec->rec1;
-  if (square > 64)
-  {
-    r = rec->rec2;
-    square = square-64;
-  }
+  // unsigned long long r = rec->rec1;
+  // if (square > 64)
+  // {
+  //   r = rec->rec2;
+  //   square = square-64;
+  // }
+  //
+  // //return *(rec->visited + square);
+  // if ((r & (1ll<<square)) > 0) return true;
+  // else return false;
 
-  //return *(rec->visited + square);
-  if ((r & (1ll<<square)) > 0) return true;
+  if (rec->rec[square] > -1) return true;
   else return false;
 }
 
 
 void
-VisitedRecord_setVisited(visitedrec_t *rec, unsigned char square)
+VisitedRecord_setVisited(visitedrec_t *rec, unsigned char square, char dist)
 {
   // *(rec->visited + square) = true;
-  if (square < 64)
-  {
-    rec->rec1 = (rec->rec1 | (1ll<<square));
-  }
-  else
-  {
-    rec->rec2 = (rec->rec2 | (1ll<<(square-64)));
-  }
+  // if (square < 64)
+  // {
+  //   rec->rec1 = (rec->rec1 | (1ll<<square));
+  // }
+  // else
+  // {
+  //   rec->rec2 = (rec->rec2 | (1ll<<(square-64)));
+  // }
+  rec->rec[square] = dist;
 }
 
-
-void VisitedRecord_destroy(visitedrec_t *rec)
+char
+VisitedRecord_distance(visitedrec_t *rec, unsigned char square)
 {
-  if (rec != NULL)
-  {
-    //free(rec->visited);
-    //free(rec);
-  }
+  return rec->rec[square];
 }
