@@ -251,7 +251,6 @@ Search_bfs_exists(searchresult_t *res, board_t *board, player_t player, unsigned
     curr_len = VisitedRecord_distance(&visited, curr_sq);
     // curr_sq = curr & LENGTH_MASK;
     #ifdef DEBUG
-      printf("Curr: %i\n", curr);
       printf("CurrSq: %i\n", curr_sq);
     #endif
 

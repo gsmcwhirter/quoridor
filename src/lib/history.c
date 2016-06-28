@@ -4,38 +4,85 @@
 
 #include "gamestate.h"
 #include "history.h"
+#include "move.h"
 
 
 void
 GameHistory_init(gamehistory_t *h, const gamestate_t *state)
 {
+  #ifdef DEBUG
+    printf("Initializing history.");
+  #endif
   h->prev = NULL;
   h->next = NULL;
   h->move = NULL;
   GameState_clone(state, &(h->state));
+  #ifdef DEBUG
+    printf("Initializing history done.\n");
+  #endif
 }
 
 gamehistory_t *
 GameHistory_clone(const gamehistory_t *history, gamehistory_t *h)
 {
+  #ifdef DEBUGAI
+    printf("Inside cloning history.\n");
+  #endif
   if (history == NULL)
   {
+    #ifdef DEBUGAI
+      printf("No original provided.\n");
+    #endif
     return NULL;
   }
 
   if (h == NULL)
   {
+    #ifdef DEBUGAI
+      printf("No new history memory provided.\n");
+    #endif
     h = malloc(sizeof(gamehistory_t));
+    #ifdef DEBUGAI
+      printf("Initializing new history.\n");
+    #endif
     GameHistory_init(h, &(history->state));
   }
 
-  GameMove_clone(history->move, h->move);
+  if (history->move != NULL)
+  {
+    #ifdef DEBUGAI
+      printf("Cloning game move.\n");
+      printf("%p\n", history->move);
+      GameMove_print(history->move);
+      printf("\n");
+    #endif
+    GameMove_clone(history->move, h->move);
+  }
+  else
+  {
+    h->move = NULL;
+  }
 
   if (history->next != NULL)
   {
+    #ifdef DEBUGAI
+      printf("Cloning next history item...\n");
+    #endif
     h->next = GameHistory_clone(history->next, NULL);
     h->next->prev = h;
   }
+  else
+  {
+    h->next = NULL;
+  }
+
+  #ifdef DEBUGAI
+    printf("Cloning game state...\n");
+  #endif
+  GameState_clone(&(history->state), &(h->state));
+  #ifdef DEBUGAI
+    printf("done cloning state.\n");
+  #endif
 
   return h;
 }

@@ -50,10 +50,19 @@ GameState_clone(const gamestate_t *state, gamestate_t * newstate)
     newstate = malloc(sizeof(gamestate_t));
   }
 
+  #ifdef DEBUG
+    printf("Cloning game board...\n");
+  #endif
   Board_clone(&(state->board), &(newstate->board));
+  #ifdef DEBUG
+    printf("Setting player info...\n");
+  #endif
   newstate->player = state->player;
   newstate->player1_walls = state->player1_walls;
   newstate->player2_walls = state->player2_walls;
+  #ifdef DEBUG
+    printf("cloning gamestate done.\n");
+  #endif
 
   return newstate;
 }

@@ -1,6 +1,8 @@
 #include <stdio.h>
 #include <stdbool.h>
 
+#include "strdup/strdup.h"
+
 #include "ai.h"
 #include "board.h"
 #include "gamestate.h"
@@ -39,17 +41,30 @@ PossibleMoves_clone(const possmoves_t *pm, possmoves_t *new)
   new->wall_size = pm->wall_size;
   new->walk_size = pm->walk_size;
 
-  for (int i = 0; i < new->wall_size; i++)
+  for (int i = 5; i < 5 + new->wall_size; i++)
   {
-    GameMove_clone(&(pm->wall_moves[i]), &(new->wall_moves[i]));
+    GameMove_clone(&(pm->moves[i]), &(new->moves[i]));
   }
 
   for (int i = 0; i < new->walk_size; i++)
   {
-    GameMove_clone(&(pm->walk_moves[i]), &(new->walk_moves[i]));
+    GameMove_clone(&(pm->moves[i]), &(new->moves[i]));
   }
 
   return new;
+}
+
+void
+PossibleMoves_print(possmoves_t *pm)
+{
+  printf("Walk Moves: %i; Wall Moves: %i\n", pm->walk_size, pm->wall_size);
+  for (int i = 0; i < 5 + pm->wall_size; i++)
+  {
+    if (i < 5 && i >= pm->walk_size) continue;
+    printf("%i - ", i);
+    GameMove_print(&(pm->moves[i]));
+    printf("\n");
+  }
 }
 
 // void
@@ -92,10 +107,32 @@ PossibleMoves_clone(const possmoves_t *pm, possmoves_t *new)
 void
 AIStage_init(aistage_t *ais, gamestate_t *gamestate, gamehistory_t *history)
 {
+  #ifdef DEBUGAI
+    printf("AIS Setting player...\n");
+  #endif
   ais->my_player = gamestate->player;
+  #ifdef DEBUGAI
+    printf("AIS Cloning state...\n");
+  #endif
   GameState_clone(gamestate, &(ais->gamestate));
+  #ifdef DEBUGAI
+    printf("AIS done state.\n");
+  #endif
+  #ifdef DEBUGAI
+    printf("AIS Cloning history...\n");
+  #endif
+  GameHistory_print(history);
   GameHistory_clone(history, &(ais->history));
+  #ifdef DEBUGAI
+    printf("AIS done history.\n");
+  #endif
+  #ifdef DEBUGAI
+    printf("AIS Initializing possible moves...\n");
+  #endif
   PossibleMoves_init(&(ais->nextmoves));
+  #ifdef DEBUGAI
+    printf("AIS done possible moves.\n");
+  #endif
   ais->stage_score_defined = false;
   // ais->prev = NULL;
 
@@ -111,11 +148,25 @@ AIStage_advance(const aistage_t *oldais, aistage_t *ais, gamemove_t *move) //clo
   }
 
   //gamemove_t *newmove = GameMove_clone(move);
-
+  #ifdef DEBUGAI
+    printf("Cloning state.\n");
+  #endif
   GameState_clone(&(oldais->gamestate), &(ais->gamestate));
+  #ifdef DEBUG
+    printf("Advancing state.\n");
+  #endif
   GameState_applyMove(&(ais->gamestate), move);
+  #ifdef DEBUGAI
+    printf("Cloning history.\n");
+  #endif
   GameHistory_clone(&(oldais->history), &(ais->history));
+  #ifdef DEBUGAI
+    printf("Advancing history.\n");
+  #endif
   GameHistory_push(&(ais->history), move, &(ais->gamestate));
+  #ifdef DEBUGAI
+    printf("Cloning and updating possible moves.\n");
+  #endif
   PossibleMoves_clone(&(oldais->nextmoves), &(ais->nextmoves));
   AIStage_updatePossibleMoves(ais);
   ais->stage_score_defined = false;
@@ -125,35 +176,16 @@ AIStage_advance(const aistage_t *oldais, aistage_t *ais, gamemove_t *move) //clo
 }
 
 
-// void
-// AIStage_destroy(aistage_t *ais)
-// {
-//   if (ais != NULL)
-//   {
-//     ais->prev = NULL;
-//     GameState_destroy(ais->gamestate);
-//     GameHistory_destroy(ais->history);
-//     PossibleMoves_destroy(ais->nextmoves);
-//     free(ais);
-//   }
-// }
-
-
 void
 AIStage_generateWalkMoves(aistage_t *ais)
 {
-  // if (ais->nextmoves.walk_size > 0)
-  // {
-  //   for (int i = 0; i < ais->nextmoves.walk_size; i++)
-  //   {
-  //     GameMove_destroy(*(ais->nextmoves.walk_moves + i));
-  //   }
-  // }
-
+  #ifdef DEBUG
+    printf("Generating walking moves...\n");
+  #endif
   int ct = 0;
   int r;
   char c;
-  char * buffer = "    ";
+  char buffer[] = "    ";
 
   int loc, loc2;
   if (ais->gamestate.player == PLAYER1)
@@ -173,6 +205,9 @@ AIStage_generateWalkMoves(aistage_t *ais)
   adjlist_t *al2;
   int deg = al->degree;
   int neigh;
+  #ifdef DEBUG
+    printf("going into loop...\n");
+  #endif
   for (int i = 0; i < deg; i++)
   {
     if (ais->gamestate.player == PLAYER1)
@@ -180,15 +215,22 @@ AIStage_generateWalkMoves(aistage_t *ais)
     else
       neigh = *(al->neighbors + (deg - i - 1));
 
+    #ifdef DEBUG
+      printf("considering neighbor %i...\n", neigh);
+    #endif
+
     if (neigh == loc2)
     {
+      #ifdef DEBUG
+        printf("Other player is in that spot...\n");
+      #endif
       al2 = Graph_neighbors(g, loc2);
       if (AdjList_hasNeighbor(al2, loc2 + (loc2 - loc)))
       {
         r = locToRow(loc2 + (loc2 - loc));
         c = 'a' + locToCol(loc2 + (loc2 - loc));
         sprintf(buffer, "%c%i", c, r);
-        GameMove_init(&(ais->nextmoves.walk_moves[ct]), ais->gamestate.player, r, c, NONE, buffer);
+        GameMove_init(&(ais->nextmoves.moves[ct]), ais->gamestate.player, r, c, NONE, buffer);
         // *(ais->nextmoves->walk_moves + ct) = GameMove_create(ais->gamestate->player, r, c, NONE, buffer);
         ct++;
       }
@@ -202,7 +244,7 @@ AIStage_generateWalkMoves(aistage_t *ais)
           if (c - 1 >= 'a')
           {
             sprintf(buffer, "%c%i", c-1, r);
-            GameMove_init(&(ais->nextmoves.walk_moves[ct]), ais->gamestate.player, r, c-1, NONE, buffer);
+            GameMove_init(&(ais->nextmoves.moves[ct]), ais->gamestate.player, r, c-1, NONE, buffer);
             // *(ais->nextmoves->walk_moves + ct) = GameMove_create(ais->gamestate->player, r, c-1, NONE, buffer);
             ct++;
           }
@@ -210,7 +252,7 @@ AIStage_generateWalkMoves(aistage_t *ais)
           if (c + 1 <= 'i')
           {
             sprintf(buffer, "%c%i", c+1, r);
-            GameMove_init(&(ais->nextmoves.walk_moves[ct]), ais->gamestate.player, r, c+1, NONE, buffer);
+            GameMove_init(&(ais->nextmoves.moves[ct]), ais->gamestate.player, r, c+1, NONE, buffer);
             // *(ais->nextmoves->walk_moves + ct) = GameMove_create(ais->gamestate->player, r, c+1, NONE, buffer);
             ct++;
           }
@@ -220,7 +262,7 @@ AIStage_generateWalkMoves(aistage_t *ais)
           if (r - 1 > 0)
           {
             sprintf(buffer, "%c%i", c, r-1);
-            GameMove_init(&(ais->nextmoves.walk_moves[ct]), ais->gamestate.player, r-1, c, NONE, buffer);
+            GameMove_init(&(ais->nextmoves.moves[ct]), ais->gamestate.player, r-1, c, NONE, buffer);
             // *(ais->nextmoves->walk_moves + ct) = GameMove_create(ais->gamestate->player, r-1, c, NONE, buffer);
             ct++;
           }
@@ -228,7 +270,7 @@ AIStage_generateWalkMoves(aistage_t *ais)
           if (r + 1 <= SQUARES_SIZE)
           {
             sprintf(buffer, "%c%i", c, r+1);
-            GameMove_init(&(ais->nextmoves.walk_moves[ct]), ais->gamestate.player, r+1, c, NONE, buffer);
+            GameMove_init(&(ais->nextmoves.moves[ct]), ais->gamestate.player, r+1, c, NONE, buffer);
             // *(ais->nextmoves->walk_moves + ct) = GameMove_create(ais->gamestate->player, r+1, c, NONE, buffer);
             ct++;
           }
@@ -237,59 +279,75 @@ AIStage_generateWalkMoves(aistage_t *ais)
     }
     else
     {
+      #ifdef DEBUG
+        printf("Nobody there. Adding possible move...\n");
+      #endif
       r = locToRow(neigh);
       c = 'a' + locToCol(neigh);
       sprintf(buffer, "%c%i", c, r);
-      GameMove_init(&(ais->nextmoves.walk_moves[ct]), ais->gamestate.player, r, c, NONE, buffer);
+      #ifdef DEBUG
+        printf("r=%i, c=%c, b=%s\n", r, c, buffer);
+      #endif
+      GameMove_init(&(ais->nextmoves.moves[ct]), ais->gamestate.player, r, c, NONE, strdup(buffer));
       // *(ais->nextmoves->walk_moves + ct) = GameMove_create(ais->gamestate->player, r, c, NONE, buffer);
       ct++;
     }
   }
 
   ais->nextmoves.walk_size = ct;
+
+  #ifdef DEBUG
+    printf("done generating walking moves.\n");
+  #endif
 }
 
 
 void
 AIStage_generatePossibleMoves(aistage_t *ais)
 {
-  // if (ais->nextmoves->wall_size > 0)
-  // {
-  //   for (int i = 0; i < ais->nextmoves->wall_size; i++)
-  //   {
-  //     GameMove_destroy(*(ais->nextmoves->wall_moves + i));
-  //   }
-  // }
+  #ifdef DEBUG
+    printf("Generating all possible moves.\n");
+  #endif
+  AIStage_generateWalkMoves(ais);
 
   int ct = 0;
   int r;
   char c;
-  char * buffer = "    ";
-  for (int i = 0; i < WALLS_SIZE_SQ; i++)
+  char buffer[] = "    ";
+  for (int i = 0; i < SQUARES_SIZE_SQ; i++)
   {
     r = locToRow(i);
     c = 'a' + locToCol(i);
 
+    if (r == SQUARES_SIZE) continue;
+    if (c == 'i') continue;
+
     if (Board_validWall(&(ais->gamestate.board), HORIZONTAL, r, c))
     {
       sprintf(buffer, "%c%ih", c, r);
-      GameMove_init(&(ais->nextmoves.wall_moves[ct]), ais->gamestate.player, r, c, HORIZONTAL, buffer);
+      GameMove_init(&(ais->nextmoves.moves[5+ct]), ais->gamestate.player, r, c, HORIZONTAL, strdup(buffer));
       // *(ais->nextmoves->wall_moves + ct) = GameMove_create(ais->gamestate->player, r, c, HORIZONTAL, buffer);
       ct++;
+    }
+    else
+    {
+      printf("Skipping wall %c%ih\n", c, r);
     }
 
     if (Board_validWall(&(ais->gamestate.board), VERTICAL, r, c))
     {
       sprintf(buffer, "%c%iv", c, r);
-      GameMove_init(&(ais->nextmoves.wall_moves[ct]), ais->gamestate.player, r, c, VERTICAL, buffer);
+      GameMove_init(&(ais->nextmoves.moves[5+ct]), ais->gamestate.player, r, c, VERTICAL, strdup(buffer));
       // *(ais->nextmoves->wall_moves + ct) = GameMove_create(ais->gamestate->player, r, c, VERTICAL, buffer);
       ct++;
+    }
+    else
+    {
+      printf("Skipping wall %c%iv\n", c, r);
     }
   }
 
   ais->nextmoves.wall_size = ct;
-
-  AIStage_generateWalkMoves(ais);
 }
 
 
@@ -298,17 +356,13 @@ void AIStage_updatePossibleMoves(aistage_t *ais)
   AIStage_generateWalkMoves(ais);
 
   gamemove_t *move;
-  for (int i = ais->nextmoves.wall_size - 1; i >= 0; i--)
+  for (int i = 5 + ais->nextmoves.wall_size - 1; i >= 5; i--)
   {
-    move = &(ais->nextmoves.wall_moves[i]);
+    move = &(ais->nextmoves.moves[i]);
     if (!Board_validWall(&(ais->gamestate.board), move->wall, move->row, move->col))
     {
       ais->nextmoves.wall_size--;
-      GameMove_clone(&(ais->nextmoves.wall_moves[ais->nextmoves.wall_size]), &(ais->nextmoves.wall_moves[i]));
-      // GameMove_clone(&(ais->nextmoves.wall_moves[ais->nextmoves.wall_size]), &(ais->nextmoves.wall_moves[i]));
-      // *(ais->nextmoves->wall_moves + i) = *(ais->nextmoves->wall_moves + ais->nextmoves->wall_size);
-      // *(ais->nextmoves->wall_moves + ais->nextmoves->wall_size) = NULL;
-      // GameMove_destroy(move);
+      GameMove_clone(&(ais->nextmoves.moves[5 + ais->nextmoves.wall_size]), &(ais->nextmoves.moves[i]));
     }
   }
 }
@@ -370,84 +424,75 @@ AIStage_evaluateGameState(aistage_t *ais)
   return score;
 }
 
-moveseq_t *
-MoveSequence_create()
+void
+MoveSequence_init(moveseq_t *ms)
 {
-  moveseq_t *bm = malloc(sizeof(moveseq_t));
-  bm->num_moves = 0;
-  bm->max_moves = 8;
-  bm->score = BLOCKED_SCORE;
-  bm->moves = malloc(sizeof(gamemove_t *) * bm->max_moves);
+  // moveseq_t *bm = malloc(sizeof(moveseq_t));
+  ms->num_moves = 0;
+  ms->max_moves = 8;
+  ms->score = BLOCKED_SCORE;
+  // bm->moves = malloc(sizeof(gamemove_t *) * bm->max_moves);
 
-  return bm;
+  // return bm;
 }
 
 moveseq_t *
-MoveSequence_clone(moveseq_t *old)
+MoveSequence_clone(const moveseq_t *old, moveseq_t *ms)
 {
-  moveseq_t *ms = malloc(sizeof(moveseq_t));
+  if (ms == NULL)
+    ms = malloc(sizeof(moveseq_t));
+
   ms->num_moves = old->num_moves;
   ms->max_moves = old->max_moves;
   ms->score = old->score;
-  ms->moves = malloc(sizeof(gamemove_t *) * old->max_moves);
+  // ms->moves = malloc(sizeof(gamemove_t *) * old->max_moves);
 
   for (int i = 0; i < old->num_moves; i++)
   {
-    *(ms->moves + i) = *(old->moves + i);
+    GameMove_clone(&(old->moves[i]), &(ms->moves[i]));
   }
 
   return ms;
 }
 
-void
+bool
 MoveSequence_add(moveseq_t *ms, gamemove_t *move)
 {
   if (ms->num_moves == ms->max_moves)
   {
-    MoveSequence_expand(ms);
+    return false;
   }
 
-  *(ms->moves + ms->num_moves) = move;
+  GameMove_clone(move, &(ms->moves[ms->num_moves]));
+  // *(ms->moves + ms->num_moves) = move;
   ms->num_moves++;
+  return true;
 }
 
+
 void
-MoveSequence_expand(moveseq_t *ms)
+MoveSequence_print(moveseq_t *ms)
 {
-  gamemove_t **old = ms->moves;
-  ms->moves = malloc(sizeof(gamemove_t *) * ms->max_moves * 2);
+  printf("(L=%i)", ms->num_moves);
   for (int i = 0; i < ms->num_moves; i++)
   {
-    *(ms->moves + i) = *(old + i);
-    *(old + i) = NULL;
+    printf(",");
+    GameMove_print(&(ms->moves[i]));
   }
-  free(old);
+  printf("\n");
 }
+
 
 void
-MoveSequence_destroy(moveseq_t *bm)
+BestMoves_init(bestmoves_t *bm)
 {
-  if (bm != NULL)
-  {
-    for (int i = 0; i < bm->num_moves; i++)
-    {
-      *(bm->moves + i) = NULL;
-    }
-    free(bm->moves);
-    free(bm);
-  }
-}
-
-bestmoves_t *
-BestMoves_create()
-{
-  bestmoves_t *bm = malloc(sizeof(bestmoves_t));
+  // bestmoves_t *bm = malloc(sizeof(bestmoves_t));
   bm->size = 0;
-  bm->max_size = 8;
+  bm->max_size = 32;
   bm->score = BLOCKED_SCORE + 1;
   bm->moves = malloc(sizeof(moveseq_t *) * (bm->max_size));
 
-  return bm;
+  // return bm;
 }
 
 void
@@ -477,13 +522,25 @@ BestMoves_expand(bestmoves_t *bm)
 
 
 void
+BestMoves_print(bestmoves_t *bm)
+{
+  printf("Best score: %i\n", bm->score);
+  for (int i = 0; i < bm->size; i++)
+  {
+    printf("\t");
+    MoveSequence_print(*(bm->moves + i));
+  }
+}
+
+
+void
 BestMoves_destroy(bestmoves_t *bm)
 {
   if (bm != NULL)
   {
     for (int i = 0; i < bm->size; i++)
     {
-      MoveSequence_destroy(*(bm->moves + i));
+      // MoveSequence_destroy(*(bm->moves + i));
       *(bm->moves + i) = NULL;
     }
     free(bm->moves);
@@ -491,103 +548,200 @@ BestMoves_destroy(bestmoves_t *bm)
   }
 }
 
-bestmoves_t *
+bestmoves_t
 AIStage_bestMoves(aistage_t *ais, moveseq_t *ms, int lookahead)
 {
+  #ifdef DEBUGAI
+    printf("Calculating best moves.\n");
+    printf("Lookahead: %i\n", lookahead);
+  #endif
   // odd lookahead is my turn, even is opponent's, but ignoring for now
-  bestmoves_t *best = BestMoves_create();
-  bestmoves_t *results;
-  moveseq_t *newms;
+  bestmoves_t best;
+  BestMoves_init(&best);
+  bestmoves_t results;
+  moveseq_t newms;
+  MoveSequence_init(&newms);
+
   aistage_t next;
+  gamemove_t currmove;
 
-  if (ms == NULL)
+  #ifdef DEBUGAI
+    printf("Initialization done.\n");
+  #endif
+
+  for (int i = 0; i < 5 + ais->nextmoves.wall_size; i++)
   {
-    ms = MoveSequence_create();
-  }
+    #ifdef DEBUGAI
+      printf("Loop index %i\n", i);
+    #endif
+    if (i < 5 && i >= ais->nextmoves.walk_size)
+    {
+      #ifdef DEBUGAI
+        printf("Skipping due to missing walk move.\n");
+      #endif
+      continue;
+    }
 
+    GameMove_print(&(ais->nextmoves.moves[i]));
+    printf("\n");
 
+    GameMove_clone(&(ais->nextmoves.moves[i]), &currmove);
+    GameMove_print(&currmove);
+    printf("\n");
 
-  //TODO: duplicate everything for walk instead of wall
-
-  for (int i = 0; i < ais->nextmoves.wall_size; i++)
-  {
-    AIStage_advance(ais, &next, &(ais->nextmoves.wall_moves[i]));
+    #ifdef DEBUGAI
+      printf("Advancing the game state.\n");
+    #endif
+    AIStage_advance(ais, &next, &currmove);
+    #ifdef DEBUGAI
+      printf("Advancing done.\n");
+    #endif
 
     if (lookahead == 1)
     {
+      #ifdef DEBUGAI
+        printf("Lookahead 1!\n");
+      #endif
+      #ifdef DEBUGAI
+        printf("Calculating stage score...\n");
+      #endif
       AIStage_evaluateGameState(&next);
-      if (next.stage_score > best->score)
+      #ifdef DEBUGAI
+        printf("Killing bad results...\n");
+      #endif
+      if (next.stage_score > best.score)
       {
-        best->score = next.stage_score; // now defined
-        for (int k = best->size - 1; k >= 0 ; k--)
+        best.score = next.stage_score; // now defined
+        for (int k = best.size - 1; k >= 0 ; k--)
         {
-          if ((*(best->moves + k))->score < best->score - BEST_TOLERANCE)
+          if ((*(best.moves + k))->score < best.score - BEST_TOLERANCE)
           {
-            MoveSequence_destroy(*(best->moves + k));
-            best->size--;
-            *(best->moves + k) = *(best->moves + best->size);
-            *(best->moves + best->size) = NULL;
+            // MoveSequence_destroy(*(best.moves + k));
+            best.size--;
+            *(best.moves + k) = *(best.moves + best.size);
+            *(best.moves + best.size) = NULL;
           }
         }
       }
 
-      if (next.stage_score >= best->score - BEST_TOLERANCE)
+      #ifdef DEBUGAI
+        printf("Trying to add this result...\n");
+      #endif
+
+      if (next.stage_score >= best.score - BEST_TOLERANCE)
       {
-        newms = MoveSequence_clone(ms);
-        MoveSequence_add(newms, &(ais->nextmoves.wall_moves[i]));
-        newms->score = next.stage_score;
-        BestMoves_add(best, newms);
+        #ifdef DEBUGAI
+          printf("It is a decent one...\n");
+        #endif
+        #ifdef DEBUGAI
+          printf("Cloning move sequence...\n");
+        #endif
+        MoveSequence_clone(ms, &newms);
+        #ifdef DEBUGAI
+          printf("Adding this move...\n");
+        #endif
+        MoveSequence_add(&newms, &currmove);
+        #ifdef DEBUGAI
+          printf("Updating score...\n");
+        #endif
+        newms.score = next.stage_score;
+        #ifdef DEBUGAI
+          printf("Adding new best move...\n");
+        #endif
+        BestMoves_add(&best, &newms);
+        #ifdef DEBUGAI
+          printf("recording done.");
+        #endif
       }
     }
     else if (lookahead % 2 == 0)
     {
+      #ifdef DEBUGAI
+        printf("Opponent lookahead!\n");
+      #endif
       // like the else, but minimize instead of maximize
-      // TODO
-    }
-    else
-    {
-      newms = MoveSequence_clone(ms);
-      MoveSequence_add(newms, &(ais->nextmoves.wall_moves[i]));
-      results = AIStage_bestMoves(&next, newms, lookahead - 1);
+      MoveSequence_clone(ms, &newms);
+      MoveSequence_add(&newms, &(ais->nextmoves.moves[i]));
+      results = AIStage_bestMoves(&next, &newms, lookahead - 1);
 
-      if (best->score < results->score - BEST_TOLERANCE) // results are far better
+      if (best.score > results.score) // results are far better
       {
-        BestMoves_destroy(best);
+        BestMoves_destroy(&best);
         best = results;
       }
-      else if (results->score < best->score - BEST_TOLERANCE) //best is far better
+      else if (results.score > best.score) //best is far better
       {
-        BestMoves_destroy(results);
+        BestMoves_destroy(&results);
       }
       else //mixed results
       {
-        for (int b = 0; b < results->size; b++)
+        for (int b = 0; b < results.size; b++)
         {
-          if ((*(results->moves + b))->score > best->score)
+          if ((*(results.moves + b))->score < best.score)
           {
-            best->score = (*(results->moves + b))->score;
-            for (int k = best->size - 1; k >= 0 ; k--)
+            best.score = (*(results.moves + b))->score;
+            for (int k = best.size - 1; k >= 0 ; k--)
             {
-              if ((*(best->moves + k))->score < best->score - BEST_TOLERANCE)
+              if ((*(best.moves + k))->score > best.score)
               {
-                MoveSequence_destroy(*(best->moves + k));
-                best->size--;
-                *(best->moves + k) = *(best->moves + best->size);
-                *(best->moves + best->size) = NULL;
+                best.size--;
+                *(best.moves + k) = *(best.moves + best.size);
+                *(best.moves + best.size) = NULL;
               }
             }
           }
 
-          if ((*(results->moves + b))->score >= best->score - BEST_TOLERANCE)
+          if ((*(results.moves + b))->score <= best.score)
           {
-            BestMoves_add(best, *(results->moves + b));
+            BestMoves_add(&best, *(results.moves + b));
+          }
+        }
+      }
+    }
+    else
+    {
+      #ifdef DEBUGAI
+        printf("Odd lookahead!\n");
+      #endif
+      MoveSequence_clone(ms, &newms);
+      MoveSequence_add(&newms, &(ais->nextmoves.moves[i]));
+      results = AIStage_bestMoves(&next, &newms, lookahead - 1);
+
+      if (best.score < results.score - BEST_TOLERANCE) // results are far better
+      {
+        BestMoves_destroy(&best);
+        best = results;
+      }
+      else if (results.score < best.score - BEST_TOLERANCE) //best is far better
+      {
+        BestMoves_destroy(&results);
+      }
+      else //mixed results
+      {
+        for (int b = 0; b < results.size; b++)
+        {
+          if ((*(results.moves + b))->score > best.score)
+          {
+            best.score = (*(results.moves + b))->score;
+            for (int k = best.size - 1; k >= 0 ; k--)
+            {
+              if ((*(best.moves + k))->score < best.score - BEST_TOLERANCE)
+              {
+                best.size--;
+                *(best.moves + k) = *(best.moves + best.size);
+                *(best.moves + best.size) = NULL;
+              }
+            }
+          }
+
+          if ((*(results.moves + b))->score >= best.score - BEST_TOLERANCE)
+          {
+            BestMoves_add(&best, *(results.moves + b));
           }
         }
       }
     }
   }
-
-  MoveSequence_destroy(ms);
 
   return best;
 
