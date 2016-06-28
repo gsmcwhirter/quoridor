@@ -8,7 +8,6 @@
 #include "gamestate.h"
 #include "search.h"
 
-
 char *
 moveDescription(moveresult_t res)
 {

@@ -3,7 +3,7 @@
 
 #include <stdbool.h>
 #include "board.h"
-#include "history.h"
+#include "move.h"
 
 #define DEFAULT_WALLS 10
 #define PLAYER1_TARGET 72

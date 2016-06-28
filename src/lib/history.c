@@ -2,32 +2,38 @@
 
 #include "term/term.h"
 
+#include "gamestate.h"
 #include "history.h"
 
 
-
-gamehistory_t *
-GameHistory_create()
+void
+GameHistory_init(gamehistory_t *h, const gamestate_t *state)
 {
-  gamehistory_t *h = malloc(sizeof(gamehistory_t));
   h->prev = NULL;
   h->next = NULL;
   h->move = NULL;
-
-  return h;
+  GameState_clone(state, &(h->state));
 }
 
 gamehistory_t *
-GameHistory_clone(gamehistory_t *history)
+GameHistory_clone(const gamehistory_t *history, gamehistory_t *h)
 {
-  gamehistory_t *h = GameHistory_create();
+  if (history == NULL)
+  {
+    return NULL;
+  }
 
-  if (history->move != NULL)
-    h->move = GameMove_clone(history->move);
+  if (h == NULL)
+  {
+    h = malloc(sizeof(gamehistory_t));
+    GameHistory_init(h, &(history->state));
+  }
+
+  GameMove_clone(history->move, h->move);
 
   if (history->next != NULL)
   {
-    h->next = GameHistory_clone(history->next);
+    h->next = GameHistory_clone(history->next, NULL);
     h->next->prev = h;
   }
 
@@ -35,7 +41,7 @@ GameHistory_clone(gamehistory_t *history)
 }
 
 void
-GameHistory_push(gamehistory_t *history, gamemove_t *move)
+GameHistory_push(gamehistory_t *history, gamemove_t *move, gamestate_t *state)
 {
   gamehistory_t *tail = history;
   while (tail->next != NULL)
@@ -43,10 +49,13 @@ GameHistory_push(gamehistory_t *history, gamemove_t *move)
     tail = tail->next;
   }
 
-  tail->next = GameHistory_create();
+  tail->next = malloc(sizeof(gamehistory_t));
+  GameHistory_init(tail->next, state);
   tail->next->prev = tail;
-  tail->move = move;
+  GameMove_clone(move, tail->move);
+  //GameState_clone(state, &(tail->state));
 }
+
 
 gamehistory_t *
 GameHistory_get(gamehistory_t *history, int i)
@@ -55,6 +64,7 @@ GameHistory_get(gamehistory_t *history, int i)
   else if (history->next != NULL) return GameHistory_get(history->next, i-1);
   else return NULL;
 }
+
 
 gamehistory_t *
 GameHistory_pop(gamehistory_t *history)
@@ -69,6 +79,7 @@ GameHistory_pop(gamehistory_t *history)
   {
     tail->prev->next = NULL;
     tail->move = tail->prev->move;
+    GameState_clone(&(tail->prev->state), &(tail->state));
     tail->prev->move = NULL;
     return tail;
   }
@@ -107,7 +118,7 @@ GameHistory_destroy(gamehistory_t *history)
 
     if (history->move != NULL)
     {
-      GameMove_destroy(history->move);
+      free(history->move);
     }
 
     if (history->prev != NULL)

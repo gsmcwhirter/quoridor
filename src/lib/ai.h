@@ -6,32 +6,31 @@
 
 typedef struct PossibleMoves {
   int wall_size;
-  gamemove_t **wall_moves;
+  gamemove_t wall_moves[128];
   int walk_size;
-  gamemove_t **walk_moves;
+  gamemove_t walk_moves[5];
 } possmoves_t;
 
-possmoves_t * PossibleMoves_create();
-possmoves_t * PossibleMoves_clone(possmoves_t *pm);
-void PossibleMoves_destroy(possmoves_t *pm);
+void PossibleMoves_init(possmoves_t *pm);
+possmoves_t * PossibleMoves_clone(const possmoves_t *pm, possmoves_t *new);
 
 typedef struct AIStage {
-  int my_player;
-  gamestate_t *gamestate;
-  gamehistory_t *history;
-  possmoves_t *nextmoves;
+  player_t my_player;
+  gamestate_t gamestate;
+  gamehistory_t history;
+  possmoves_t nextmoves;
   int stage_score;
   bool stage_score_defined;
-  struct AIStage *prev;
+  // struct AIStage *prev;
 } aistage_t;
 
-aistage_t * AIStage_create(gamestate_t *gamestate, gamehistory_t *history);
+void AIStage_init(aistage_t *ais, gamestate_t *gamestate, gamehistory_t *history);
 void AIStage_generatePossibleMoves(aistage_t *ais);
 
-aistage_t * AIStage_advance(aistage_t *ais, gamemove_t *move); //clone equiv
+aistage_t * AIStage_advance(const aistage_t *ais, aistage_t *next, gamemove_t *move); //clone equiv
 void AIStage_updatePossibleMoves(aistage_t *ais);
 
-void AIStage_destroy(aistage_t *ais);
+// void AIStage_destroy(aistage_t *ais);
 
 int AIStage_evaluateGameState(aistage_t *ais);
 

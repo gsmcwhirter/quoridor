@@ -1,15 +1,16 @@
 # quoridor
 
-
+## Done Rewriting
 adjlist
 graph
 board
 gamestate
-search
 visited
 path
+test
+search?
 history
-search
+game
 
+## Working on Rewriting
 ai
-move

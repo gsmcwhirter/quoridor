@@ -75,6 +75,7 @@ read_line (char *buf, size_t length, FILE *f)
 moveresult_t
 playMove(gamestate_t* state, gamehistory_t *history, char* move)
 {
+  gamemove_t gamemove;
   // printf("Playing move %s\n", move);
   moveresult_t result;
   walldir_t dir = NONE;
@@ -94,9 +95,9 @@ playMove(gamestate_t* state, gamehistory_t *history, char* move)
 
   if (result == OK)
   {
-    gamemove_t *gamemove = GameMove_create(state->player, *(move + 1) - '1' + 1, *(move), dir, move);
+    GameMove_init(&gamemove, state->player, *(move + 1) - '1' + 1, *(move), dir, move);
     GameState_togglePlayer(state);
-    GameHistory_push(history, gamemove);
+    GameHistory_push(history, &gamemove, state);
   }
 
   return result;
@@ -109,7 +110,11 @@ repl()
   printf("Starting Game...\n");
   size_t ct = occurrences(history_delim, history);
 
-  gamehistory_t *gamehistory = GameHistory_create();
+  gamestate_t gamestate;
+  GameState_init(&gamestate, NULL, PLAYER1);
+
+  gamehistory_t gamehistory;
+  GameHistory_init(&gamehistory, &gamestate);
 
   size_t num_moves;
   char **moves;
@@ -126,29 +131,10 @@ repl()
     num_moves = strlen(trim(*(moves))) > 0 ? 1 : 0;
   }
 
-  // player_t player = PLAYER1;
-  // if (num_moves > 0)
-  // {
-  //   if (num_moves % 2 == 0)
-  //   {
-  //     player = PLAYER1;
-  //   }
-  //   else
-  //   {
-  //     player = PLAYER2;
-  //   }
-  // }
-  // else
-  // {
-  //   player = PLAYER1;
-  // }
-
-  gamestate_t *gamestate = GameState_create(Board_create(), PLAYER1);
-
   for (unsigned int i = 0; i < num_moves; i++)
   {
     printf("Replaying move: %s\n", *(moves + i));
-    playMove(gamestate, gamehistory, *(moves + i));
+    playMove(&gamestate, &gamehistory, *(moves + i));
   }
 
   char *move;
@@ -175,9 +161,9 @@ repl()
   {
     printf("\n");
     // term_clear("screen");
-    GameState_print(gamestate, as_player);
+    GameState_print(&gamestate, as_player);
     printf("\n");
-    GameHistory_print(gamehistory);
+    GameHistory_print(&gamehistory);
     printf("\nEnter next move (empty to autocompute): ");
     move = trim(case_lower(read_line(buffer, 40, stdin)));
     printf("\n");
@@ -190,22 +176,24 @@ repl()
     else if (strlen(move) == 1 && *(move) == 'u')
     {
       printf("Undoing last move...");
-      gamehistory_t *lastmove = GameHistory_pop(gamehistory);
+      gamehistory_t *lastmove = GameHistory_pop(&gamehistory);
       if (lastmove != NULL)
       {
+        // GameHistory_destroy(lastmove);
+        // GameState_destroy(gamestate);
+        // gamestate = GameState_create(Board_create(), PLAYER1);
+        // gamehistory_t *oldhistory = gamehistory;
+        // gamehistory = GameHistory_create();
+        // gamehistory_t *curr = oldhistory;
+        // while (curr != NULL && curr->move != NULL)
+        // {
+        //   playMove(gamestate, gamehistory, curr->move->srep);
+        //   curr = curr->next;
+        // }
+        // GameHistory_destroy(oldhistory);
+        // printf("done.\n");
+        GameState_clone(&(lastmove->state), &gamestate);
         GameHistory_destroy(lastmove);
-        GameState_destroy(gamestate);
-        gamestate = GameState_create(Board_create(), PLAYER1);
-        gamehistory_t *oldhistory = gamehistory;
-        gamehistory = GameHistory_create();
-        gamehistory_t *curr = oldhistory;
-        while (curr != NULL && curr->move != NULL)
-        {
-          playMove(gamestate, gamehistory, curr->move->srep);
-          curr = curr->next;
-        }
-        GameHistory_destroy(oldhistory);
-        printf("done.\n");
       }
       else
       {
@@ -230,12 +218,12 @@ repl()
     }
     else
     {
-      result = playMove(gamestate, gamehistory, move);
+      result = playMove(&gamestate, &gamehistory, move);
       if (result != OK)
       {
         printf("Illegal move: %s\n", moveDescription(result));
       }
-      else if (GameState_isGameOver(gamestate))
+      else if (GameState_isGameOver(&gamestate))
       {
         printf("Game Over!\n");
         break;
@@ -243,8 +231,7 @@ repl()
     }
   }
 
-  GameHistory_destroy(gamehistory);
-  GameState_destroy(gamestate);
+  GameHistory_destroy(&gamehistory);
 }
 
 int

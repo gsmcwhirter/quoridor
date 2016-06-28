@@ -11,9 +11,9 @@ typedef struct GameMove {
   char *srep;
 } gamemove_t;
 
-gamemove_t *GameMove_create(player_t player, int row, char col, walldir_t wall, char *srep);
-gamemove_t *GameMove_clone(gamemove_t *move);
+void GameMove_init(gamemove_t *move, player_t player, int row, char col, walldir_t wall, char *srep);
+gamemove_t *GameMove_clone(const gamemove_t *move, gamemove_t *new);
 void GameMove_print(gamemove_t *move);
-void GameMove_destroy(gamemove_t *move);
+
 
 #endif
