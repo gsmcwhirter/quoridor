@@ -63,6 +63,7 @@ AIStage_advance(const aistage_t *oldais, aistage_t *ais, gamemove_t *move) //clo
     printf("Advancing state.\n");
   #endif
   GameState_applyMove(&(ais->gamestate), move);
+  GameState_togglePlayer(&(ais->gamestate));
   // #ifdef DEBUGAI
   //   printf("Cloning history.\n");
   // #endif
@@ -266,6 +267,7 @@ void AIStage_updatePossibleMoves(aistage_t *ais)
   for (int i = 5 + ais->nextmoves.wall_size - 1; i >= 5; i--)
   {
     move = &(ais->nextmoves.moves[i]);
+    move->player = ais->gamestate.player;
     if (!Board_validWall(&(ais->gamestate.board), move->wall, move->row, move->col))
     {
       ais->nextmoves.wall_size--;
@@ -317,7 +319,7 @@ AIStage_evaluateGameState(aistage_t *ais)
     p2pathlen = p1pathlen = sr.shortest_paths[0].length;;
   }
 
-  if (ais->gamestate.player == PLAYER1)
+  if (ais->gamestate.player == PLAYER2) //player 1 just played
   {
     score = p1walls - p2walls + p2pathlen - p1pathlen;
   }

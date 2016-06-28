@@ -179,7 +179,7 @@ main()
 
   timer_start(&bestmove_timer3);
   // AIStage_bestMoves(&ai, &bm, &history, &ms, 3);
-  AIStage_bestMoves(&ai, &bm, &history, 5);
+  AIStage_bestMoves(&ai, &bm, &history, 3);
   timer_pause(&bestmove_timer3);
   printf("3 Moves: %ldms\n", timer_delta_ms(&bestmove_timer3));
   printf("Number of results: %i\n", bm.size);

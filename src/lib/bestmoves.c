@@ -70,9 +70,9 @@ BestMoves_add(bestmoves_t *bm, gamemove_t *ms, bool usemin)
     if (GameMove_same(&(bm->moves[i]), ms))
     {
       if (usemin)
-        bm->moves[i].score = ((bm->moves[i].score > ms->score) ? bm->moves[i].score : ms->score);
+        bm->moves[i].score = ((bm->moves[i].score < ms->score) ? bm->moves[i].score : ms->score);
       else
-          bm->moves[i].score = ((bm->moves[i].score < ms->score) ? bm->moves[i].score : ms->score);
+        bm->moves[i].score = ((bm->moves[i].score > ms->score) ? bm->moves[i].score : ms->score);
       return;
     }
   }
@@ -110,6 +110,7 @@ BestMoves_print(const bestmoves_t *bm)
   {
     printf("\t");
     GameMove_print((bm->moves + i));
+    printf( "(score=%i)", bm->moves[i].score);
     printf("\n");
   }
 }
