@@ -5,7 +5,6 @@
 #include "board.h"
 #include "gamestate.h"
 #include "history.h"
-#include "moveseq.h"
 #include "bestmoves.h"
 #include "possmoves.h"
 #include "search.h"
@@ -472,13 +471,18 @@ AIStage_bestMoves(aistage_t *ais, bestmoves_t *best, gamehistory_t *history, int
         printf("results are in (size = %i, score = %i, current best = %i)\n", results.size, results.score, best->score);
       #endif
 
+      currmove->score = results.score;
+
       if (best->score == BLOCKED_SCORE || (results.score > BLOCKED_SCORE && best->score > results.score)) // results are far "better" for opponent
       {
         #ifdef DEBUGAI
           printf("results are 'better' than the best! (r: %i vs b: %i)\n", results.score, best->score);
         #endif
-        BestMoves_clone(&results, best);
+        // BestMoves_clone(&results, best);
         // BestMoves_destroy(&results);
+        BestMoves_reset(best);
+        BestMoves_add(best, currmove, false);
+        best->score = currmove->score;
       }
       else if (results.score > best->score && best->score > BLOCKED_SCORE) //best is far better
       {
@@ -514,10 +518,12 @@ AIStage_bestMoves(aistage_t *ais, bestmoves_t *best, gamehistory_t *history, int
 
           if (results.moves[b].score > BLOCKED_SCORE && results.moves[b].score <= best->score)
           {
+            currmove->score = results.moves[b].score;
             #ifdef DEBUGAI
               printf("adding current result to best (%i)\n", results.moves[b].score);
             #endif
-            BestMoves_add(best, &(results.moves[b]), false);
+            // BestMoves_add(best, &(results.moves[b]), false);
+            BestMoves_add(best, currmove, false);
             #ifdef DEBUGAI
               printf("added.\n");
             #endif
@@ -541,9 +547,14 @@ AIStage_bestMoves(aistage_t *ais, bestmoves_t *best, gamehistory_t *history, int
       // AIStage_bestMoves(&next, &results, history, &newms, lookahead - 1);
       AIStage_bestMoves(&next, &results, history, lookahead - 1);
 
+      currmove->score = results.score;
+
       if (best->score == BLOCKED_SCORE || best->score < results.score - BEST_TOLERANCE) // results are far better
       {
-        BestMoves_clone(&results, best);
+        // BestMoves_clone(&results, best);
+        BestMoves_reset(best);
+        BestMoves_add(best, currmove, false);
+        best->score = currmove->score;
         // BestMoves_destroy(&results);
       }
       else if (results.score < best->score - BEST_TOLERANCE) //best is far better
@@ -559,7 +570,7 @@ AIStage_bestMoves(aistage_t *ais, bestmoves_t *best, gamehistory_t *history, int
             best->score = results.moves[b].score;
             for (int k = best->size - 1; k >= 0 ; k--)
             {
-              if ((best->moves + k)->score < best->score - BEST_TOLERANCE)
+              if (best->moves[k].score < best->score - BEST_TOLERANCE)
               {
                 best->size--;
                 // MoveSequence_clone((best->moves + best->size), (best->moves + k));
@@ -571,7 +582,9 @@ AIStage_bestMoves(aistage_t *ais, bestmoves_t *best, gamehistory_t *history, int
 
           if (results.moves[b].score >= best->score - BEST_TOLERANCE)
           {
-            BestMoves_add(best, &(results.moves[b]), false);
+            currmove->score = results.moves[b].score;
+            // BestMoves_add(best, &(results.moves[b]), false);
+            BestMoves_add(best, currmove, false);
           }
         }
       }
