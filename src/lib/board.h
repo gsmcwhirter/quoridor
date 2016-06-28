@@ -44,13 +44,13 @@ unsigned char locToCol(unsigned char loc);
 
 void Board_init(board_t *board);
 board_t * Board_clone(const board_t *board, board_t *new_board);
-bool Board_isWallAtCorner(board_t *board, unsigned char r, char c);
+bool Board_isWallAtCorner(const board_t *board, unsigned char r, char c);
 void Board_setWallAtCorner(board_t *board, unsigned char r, char c);
-void Board_print(board_t *board, player_t as_player);
-bool Board_wallBetween(board_t *board, unsigned char r1, char c1, unsigned char r2, char c2);
+void Board_print(const board_t *board, player_t as_player);
+bool Board_wallBetween(const board_t *board, unsigned char r1, char c1, unsigned char r2, char c2);
 bool Board_addWall(board_t *board, walldir_t walldir, unsigned char r, char c);
 bool Board_movePlayer(board_t *board, player_t player, unsigned char r, char c);
-bool Board_validWall(board_t *board, walldir_t walldir, unsigned char r, char c);
+bool Board_validWall(const board_t *board, walldir_t walldir, unsigned char r, char c);
 
 
 #endif

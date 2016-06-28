@@ -41,11 +41,13 @@ AdjList_clone(const adjlist_t *al, adjlist_t *al2)
   // al2->total_nodes = al->total_nodes;
   // al2->max_degree = al->max_degree;
   al2->degree = al->degree;
+  al2->total_nodes = al->total_nodes;
+  al2->max_degree = al->max_degree;
   // al2->neighbors = malloc(sizeof(int) * al2->max_degree);
   #ifdef DEBUG
     printf("copying neighbors...\n");
   #endif
-  for (int i = 0; i < al2->degree; i++)
+  for (int i = 0; i < al2->max_degree; i++)
   {
     al2->neighbors[i] = al->neighbors[i];
   }
@@ -104,7 +106,7 @@ AdjList_sortNeighbors(adjlist_t *al)
 }
 
 bool
-AdjList_hasNeighbor(adjlist_t *al, unsigned char n)
+AdjList_hasNeighbor(const adjlist_t *al, unsigned char n)
 {
   #ifdef DEBUG
     printf("Checking if %i is a neighbor...\n", n);
@@ -127,7 +129,7 @@ AdjList_hasNeighbor(adjlist_t *al, unsigned char n)
 
 
 char
-AdjList_findNeighbor(adjlist_t *al, unsigned char n)
+AdjList_findNeighbor(const adjlist_t *al, unsigned char n)
 {
   #ifdef DEBUG
     printf("Finding index of neighbor %i...\n", n);

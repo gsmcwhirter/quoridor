@@ -95,7 +95,7 @@ playMove(gamestate_t* state, gamehistory_t *history, char* move)
 
   if (result == OK)
   {
-    GameMove_init(&gamemove, state->player, *(move + 1) - '1' + 1, *(move), dir, move);
+    GameMove_init(&gamemove, state->player, *(move + 1) - '1' + 1, *(move), dir);//, move);
     GameState_togglePlayer(state);
     GameHistory_push(history, &gamemove, state);
   }

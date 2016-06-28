@@ -69,7 +69,7 @@ GameState_clone(const gamestate_t *state, gamestate_t * newstate)
 
 
 void
-GameState_print(gamestate_t *state, player_t as_player)
+GameState_print(const gamestate_t *state, player_t as_player)
 {
   Board_print(&(state->board), as_player);
   printf("\n");
@@ -111,7 +111,7 @@ GameState_applyMove(gamestate_t *state, gamemove_t *move)
 
 
 moveresult_t
-GameState_moveCurrentPlayer(gamestate_t *state, int r, char c)
+GameState_moveCurrentPlayer(gamestate_t *state, unsigned char r, char c)
 {
   moveresult_t res = GameState_legalMove(state, state->player, r, c);
   if (res == OK)
@@ -122,7 +122,7 @@ GameState_moveCurrentPlayer(gamestate_t *state, int r, char c)
 }
 
 moveresult_t
-GameState_legalMove(gamestate_t *state, player_t player, int r, char c)
+GameState_legalMove(const gamestate_t *state, player_t player, unsigned char r, char c)
 {
   unsigned char loc, loc_other, loc_inter;
   if (player == PLAYER1)
@@ -187,7 +187,7 @@ GameState_legalMove(gamestate_t *state, player_t player, int r, char c)
 
 
 moveresult_t
-GameState_addWallCurrentPlayer(gamestate_t *state, walldir_t walldir, int r, char c)
+GameState_addWallCurrentPlayer(gamestate_t *state, walldir_t walldir, unsigned char r, char c)
 {
   moveresult_t res = GameState_legalWall(state, state->player, walldir, r, c);
   if (res != OK)
@@ -214,17 +214,18 @@ GameState_addWallCurrentPlayer(gamestate_t *state, walldir_t walldir, int r, cha
 
 
 moveresult_t
-GameState_legalWall(gamestate_t *state, player_t player, walldir_t walldir, int r, char c)
+GameState_legalWall(const gamestate_t *state, player_t player, walldir_t walldir, unsigned char r, char c)
 {
   if (player == PLAYER1 && state->player1_walls == 0) return NOT_ENOUGH_WALLS;
   if (player == PLAYER2 && state->player2_walls == 0) return NOT_ENOUGH_WALLS;
   if (!Board_validWall(&(state->board), walldir, r, c)) return WALL_BLOCKED;
+
   board_t board_after;
   Board_clone(&(state->board), &(board_after));
   Board_addWall(&(board_after), walldir, r, c);
   searchresult_t res;
   SearchResult_init(&res, 1, 0);
-  Search_bfs_all(&res, &(board_after), PLAYER1, state->board.player1);
+  Search_bfs_exists(&res, &(board_after), PLAYER1, state->board.player1);
 
   moveresult_t ret = OK;
   if (res.count == 0)
@@ -233,8 +234,8 @@ GameState_legalWall(gamestate_t *state, player_t player, walldir_t walldir, int 
   }
   else
   {
-    SearchResult_init(&res, 1, 0);
-    Search_bfs_all(&res, &(board_after), PLAYER2, state->board.player2);
+    SearchResult_reset(&res);
+    Search_bfs_exists(&res, &(board_after), PLAYER2, state->board.player2);
 
     if (res.count == 0)
     {
@@ -247,7 +248,7 @@ GameState_legalWall(gamestate_t *state, player_t player, walldir_t walldir, int 
 
 
 bool
-GameState_isGameOver(gamestate_t *state)
+GameState_isGameOver(const gamestate_t *state)
 {
   if (state->board.player1 >= PLAYER1_TARGET || state->board.player2 <= PLAYER2_TARGET)
     return true;

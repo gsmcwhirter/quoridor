@@ -137,11 +137,11 @@ main()
   #ifdef DEBUG
     printf("Creating move sequence...\n");
   #endif
-  moveseq_t ms;
-  MoveSequence_init(&ms);
-  #ifdef DEBUG
-    printf("done.\n");
-  #endif
+  // moveseq_t ms;
+  // MoveSequence_init(&ms);
+  // #ifdef DEBUG
+  //   printf("done.\n");
+  // #endif
 
   #ifdef DEBUG
     printf("Creating history...\n");
@@ -157,7 +157,7 @@ main()
     printf("Creating AI Stage...\n");
   #endif
   aistage_t ai;
-  AIStage_init(&ai, &state, &history);
+  AIStage_init(&ai, &state); //, &history);
   #ifdef DEBUGAI
     printf("generating possible moves...\n");
   #endif
@@ -166,15 +166,51 @@ main()
     printf("done setup.\n");
   #endif
 
-  PossibleMoves_print(&(ai.nextmoves));
+  // PossibleMoves_print(&(ai.nextmoves));
+  // GameHistory_print(&(ai.history));
 
   bestmoves_t bm;
+  BestMoves_init(&bm);
 
-  GameHistory_print(&(ai.history));
+  timer_t bestmove_timer3;
+  // timer_t bestmove_timer5;
+  // timer_t bestmove_timer7;
 
-  bm = AIStage_bestMoves(&ai, &ms, 3);
 
+  timer_start(&bestmove_timer3);
+  // AIStage_bestMoves(&ai, &bm, &history, &ms, 3);
+  AIStage_bestMoves(&ai, &bm, &history, 3);
+  timer_pause(&bestmove_timer3);
+  printf("3 Moves: %ldms\n", timer_delta_ms(&bestmove_timer3));
+  printf("Number of results: %i\n", bm.size);
+  printf("Best score: %i\n", bm.score);
   BestMoves_print(&bm);
+  // BestMoves_destroy(&bm);
+
+  // BestMoves_reset(&bm);
+  //
+  // // BestMoves_init(&bm);
+  // timer_start(&bestmove_timer5);
+  // // AIStage_bestMoves(&ai, &bm, &history, &ms, 5);
+  // AIStage_bestMoves(&ai, &bm, &history, 5);
+  // timer_pause(&bestmove_timer5);
+  // printf("5 Moves: %ldms\n", timer_delta_ms(&bestmove_timer5));
+  // printf("Number of results: %i\n", bm.size);
+  // printf("Best score: %i\n", bm.score);
+  // // BestMoves_destroy(&bm);
+  //
+  // BestMoves_reset(&bm);
+  //
+  // timer_start(&bestmove_timer7);
+  // // AIStage_bestMoves(&ai, &bm, &history, &ms, 7);
+  // AIStage_bestMoves(&ai, &bm, &history, 7);
+  // timer_pause(&bestmove_timer7);
+  // printf("7 Moves: %ld\n", timer_delta_ms(&bestmove_timer7));
+  // printf("Number of results: %i\n", bm.size);
+  // printf("Best score: %i\n", bm.score);
+  // // BestMoves_destroy(&bm);
+
+  // BestMoves_print(&bm);
 
   /// End Test AI
 

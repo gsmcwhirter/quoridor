@@ -53,7 +53,7 @@ Graph_addEdge(graph_t *graph, unsigned char n1, unsigned char n2)
 
 
 bool
-Graph_hasEdge(graph_t *graph, unsigned char n1, unsigned char n2)
+Graph_hasEdge(const graph_t *graph, unsigned char n1, unsigned char n2)
 {
   if (AdjList_hasNeighbor(&(graph->adj_lists[n1]), n2))
   {

@@ -15,7 +15,7 @@ GameHistory_init(gamehistory_t *h, const gamestate_t *state)
   #endif
   h->prev = NULL;
   h->next = NULL;
-  h->move = NULL;
+  h->move_set = false;
   GameState_clone(state, &(h->state));
   #ifdef DEBUG
     printf("Initializing history done.\n");
@@ -25,12 +25,12 @@ GameHistory_init(gamehistory_t *h, const gamestate_t *state)
 gamehistory_t *
 GameHistory_clone(const gamehistory_t *history, gamehistory_t *h)
 {
-  #ifdef DEBUGAI
+  #ifdef DEBUG
     printf("Inside cloning history.\n");
   #endif
   if (history == NULL)
   {
-    #ifdef DEBUGAI
+    #ifdef DEBUG
       printf("No original provided.\n");
     #endif
     return NULL;
@@ -38,29 +38,29 @@ GameHistory_clone(const gamehistory_t *history, gamehistory_t *h)
 
   if (h == NULL)
   {
-    #ifdef DEBUGAI
+    #ifdef DEBUG
       printf("No new history memory provided.\n");
     #endif
     h = malloc(sizeof(gamehistory_t));
-    #ifdef DEBUGAI
+    #ifdef DEBUG
       printf("Initializing new history.\n");
     #endif
     GameHistory_init(h, &(history->state));
   }
 
-  if (history->move != NULL)
+  if (history->move_set)
   {
     #ifdef DEBUGAI
       printf("Cloning game move.\n");
-      printf("%p\n", history->move);
-      GameMove_print(history->move);
+      GameMove_print(&(history->move));
       printf("\n");
     #endif
-    GameMove_clone(history->move, h->move);
+    GameMove_clone(&(history->move), &(h->move));
+    h->move_set = true;
   }
   else
   {
-    h->move = NULL;
+    h->move_set = false;
   }
 
   if (history->next != NULL)
@@ -99,7 +99,8 @@ GameHistory_push(gamehistory_t *history, gamemove_t *move, gamestate_t *state)
   tail->next = malloc(sizeof(gamehistory_t));
   GameHistory_init(tail->next, state);
   tail->next->prev = tail;
-  GameMove_clone(move, tail->move);
+  GameMove_clone(move, &(tail->move));
+  tail->move_set = true;
   //GameState_clone(state, &(tail->state));
 }
 
@@ -127,7 +128,7 @@ GameHistory_pop(gamehistory_t *history)
     tail->prev->next = NULL;
     tail->move = tail->prev->move;
     GameState_clone(&(tail->prev->state), &(tail->state));
-    tail->prev->move = NULL;
+    tail->prev->move_set = false;
     return tail;
   }
   else
@@ -142,10 +143,10 @@ GameHistory_print(gamehistory_t *history)
   printf("History: ");
   term_color("grey");
   gamehistory_t *curr = history;
-  while (curr != NULL && curr->move != NULL)
+  while (curr != NULL && curr->move_set)
   {
-    GameMove_print(curr->move);
-    if (curr->next != NULL && curr->next->move != NULL)
+    GameMove_print(&(curr->move));
+    if (curr->next != NULL && curr->next->move_set)
       printf(",");
     curr = curr->next;
   }
@@ -161,11 +162,6 @@ GameHistory_destroy(gamehistory_t *history)
     if (history->next != NULL)
     {
       GameHistory_destroy(history->next);
-    }
-
-    if (history->move != NULL)
-    {
-      free(history->move);
     }
 
     if (history->prev != NULL)

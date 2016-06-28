@@ -75,7 +75,7 @@ Board_clone(const board_t *board, board_t *new_board)
 
 
 bool
-Board_isWallAtCorner(board_t *board, unsigned char r, char col)
+Board_isWallAtCorner(const board_t *board, unsigned char r, char col)
 {
   unsigned char c = col - 'a' + 1;
   if (r == 0 || r > WALLS_SIZE) return true;
@@ -105,7 +105,7 @@ Board_setWallAtCorner(board_t *board, unsigned char r, char col)
 }
 
 void
-Board_printHwall(board_t *board, unsigned char r, char col)
+Board_printHwall(const board_t *board, unsigned char r, char col)
 {
   if (col < 'a')
     printf("   "); //label blank on horizontal
@@ -126,7 +126,7 @@ Board_printHwall(board_t *board, unsigned char r, char col)
 }
 
 void
-Board_printCorner(board_t *board, unsigned char r, char col)
+Board_printCorner(const board_t *board, unsigned char r, char col)
 {
   //print corner
   if (Board_isWallAtCorner(board, r, col))
@@ -144,7 +144,7 @@ Board_printCorner(board_t *board, unsigned char r, char col)
 }
 
 void
-Board_printHWalls(board_t *board, player_t as_player, unsigned char r)
+Board_printHWalls(const board_t *board, player_t as_player, unsigned char r)
 {
   for (char cc = 0; cc <= SQUARES_SIZE; cc++)
   {
@@ -170,9 +170,8 @@ Board_printHWalls(board_t *board, player_t as_player, unsigned char r)
 }
 
 
-
 void
-Board_printVWall(board_t *board, unsigned char r, char col)
+Board_printVWall(const board_t *board, unsigned char r, char col)
 {
   if (r > 0)
   {
@@ -204,7 +203,7 @@ Board_printVWall(board_t *board, unsigned char r, char col)
 
 
 void
-Board_printSquare(board_t *board, unsigned char r, char col)
+Board_printSquare(const board_t *board, unsigned char r, char col)
 {
   if (r > 0)
   {
@@ -252,7 +251,7 @@ Board_printSquare(board_t *board, unsigned char r, char col)
 
 
 void
-Board_printVWalls(board_t *board, player_t as_player, unsigned char r)
+Board_printVWalls(const board_t *board, player_t as_player, unsigned char r)
 {
   for (char cc = 0; cc <= SQUARES_SIZE; cc++)
   {
@@ -278,7 +277,7 @@ Board_printVWalls(board_t *board, player_t as_player, unsigned char r)
 
 
 void
-Board_print(board_t *board, player_t as_player)
+Board_print(const board_t *board, player_t as_player)
 {
   for (char rr = SQUARES_SIZE; rr >= 0; rr--)
   {
@@ -303,7 +302,7 @@ Board_print(board_t *board, player_t as_player)
 }
 
 bool
-Board_wallBetween(board_t *board, unsigned char r1, char c1, unsigned char r2, char c2)
+Board_wallBetween(const board_t *board, unsigned char r1, char c1, unsigned char r2, char c2)
 {
   if (r1 == 0 || r2 == 0 || c1 < 'a' || c2 < 'a') return true;
   //assumes the squares are next to each other
@@ -364,7 +363,7 @@ Board_movePlayer(board_t *board, player_t player, unsigned char r, char c)
 
 
 bool
-Board_validWall(board_t *board, walldir_t walldir, unsigned char r, char c)
+Board_validWall(const board_t *board, walldir_t walldir, unsigned char r, char c)
 {
   if (Board_isWallAtCorner(board, r, c)) return false;
 

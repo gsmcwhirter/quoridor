@@ -14,8 +14,8 @@ void AdjList_init(adjlist_t *al, const unsigned char total_nodes);
 adjlist_t * AdjList_clone(const adjlist_t *al, adjlist_t *al2);
 void AdjList_addNeighbor(adjlist_t *al, unsigned char n);
 void AdjList_sortNeighbors(adjlist_t *al);
-bool AdjList_hasNeighbor(adjlist_t *al, unsigned char n);
-char AdjList_findNeighbor(adjlist_t *al, unsigned char n);
+bool AdjList_hasNeighbor(const adjlist_t *al, unsigned char n);
+char AdjList_findNeighbor(const adjlist_t *al, unsigned char n);
 void AdjList_removeNeighbor(adjlist_t *al, unsigned char n);
 
 #endif

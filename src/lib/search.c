@@ -94,7 +94,7 @@ Search_bfs_all(searchresult_t *res, board_t *board, player_t player, unsigned ch
 
   adjlist_t *neighbors;
   unsigned char curr_sq;
-  unsigned char neighbor;
+  unsigned char neighbor = SQUARES_SIZE_SQ;
 
   while (SearchQueue_shift(&queue, &curr))
   {

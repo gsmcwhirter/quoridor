@@ -8,7 +8,8 @@
 typedef struct History {
   struct History *next;
   struct History *prev;
-  gamemove_t *move;
+  gamemove_t move;
+  bool move_set;
   gamestate_t state;
 } gamehistory_t;
 

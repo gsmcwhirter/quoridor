@@ -31,17 +31,15 @@ typedef enum MoveResult {
 
 char * moveDescription(moveresult_t res);
 
-// gamestate_t * GameState_create(board_t *board, player_t player);
 void GameState_init(gamestate_t *state, board_t *board, player_t player);
 gamestate_t * GameState_clone(const gamestate_t *state, gamestate_t * newstate);
-// void GameState_destroy(gamestate_t *state);
-void GameState_print(gamestate_t *state, player_t as_player);
+void GameState_print(const gamestate_t *state, player_t as_player);
 moveresult_t GameState_applyMove(gamestate_t *state, gamemove_t *move);
-moveresult_t GameState_moveCurrentPlayer(gamestate_t *state, int r, char c);
-moveresult_t GameState_legalMove(gamestate_t *state, player_t player, int r, char c);
-moveresult_t GameState_addWallCurrentPlayer(gamestate_t *state, walldir_t walldir, int r, char c);
-moveresult_t GameState_legalWall(gamestate_t *state, player_t player, walldir_t walldir, int r, char c);
-bool GameState_isGameOver(gamestate_t *state);
+moveresult_t GameState_moveCurrentPlayer(gamestate_t *state, unsigned char r, char c);
+moveresult_t GameState_legalMove(const gamestate_t *state, player_t player, unsigned char r, char c);
+moveresult_t GameState_addWallCurrentPlayer(gamestate_t *state, walldir_t walldir, unsigned char r, char c);
+moveresult_t GameState_legalWall(const gamestate_t *state, player_t player, walldir_t walldir, unsigned char r, char c);
+bool GameState_isGameOver(const gamestate_t *state);
 void GameState_togglePlayer(gamestate_t *state);
 
 #endif
