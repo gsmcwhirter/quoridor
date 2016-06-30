@@ -21,8 +21,14 @@
 #include "search.h"
 #include "move.h"
 
+#define UNUSED(x) (void)(x)
+
+#ifndef WALL_SCORE
 #define WALL_SCORE 1
+#endif
+#ifndef PATH_SCORE
 #define PATH_SCORE 1
+#endif
 #define BEST_TOLERANCE 0
 #define CALCULATION_TIMEOUT_SEC 10
 #define CALCULATION_TIMEOUT_NSEC 0
@@ -317,6 +323,8 @@ void AIStage_updatePossibleMoves(aistage_t *ais)
 int
 AIStage_evaluateGameState(aistage_t *ais, gamehistory_t *history)
 {
+  UNUSED(history);
+
   if (ais->stage_score_defined)
     return ais->stage_score;
 
@@ -718,11 +726,25 @@ bestMoveThread(void *data)
   int lookahead = 3;
   while (true)
   {
+    printf("Looking ahead %i moves.\n", lookahead);
     pthread_testcancel();
     _bestMove(args->ais, &(args->bestmove), args->history, lookahead);
-    lookahead += 2;
+
     *(args->last_lookahead) = lookahead;
     if (args->bestmove == NULL) break;
+
+    if (args->bestmove->score == WIN_SCORE)
+    {
+      printf("I think I will win.\n");
+      break;
+    }
+
+    if (args->bestmove->score == -WIN_SCORE)
+    {
+      printf("I think I will lose.\n");
+      break;
+    }
+    lookahead += 2;
   }
   pthread_cond_signal(&done);
   return NULL;

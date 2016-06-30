@@ -3,7 +3,6 @@
 
 #include "gamestate.h"
 #include "history.h"
-#include "moveseq.h"
 #include "bestmoves.h"
 #include "possmoves.h"
 

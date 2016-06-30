@@ -18,18 +18,18 @@
 
 #define UNUSED(x) (void)(x)
 
-bool verbose = false;
+bool autoplay = false;
 char* history = "";
 char* history_delim = ",";
 
 char buffer[40];
 
 static void
-setVerbose(command_t *self)
+setAutoPlay(command_t *self)
 {
   UNUSED(self);
   printf("verbose: enabled\n");
-  verbose = true;
+  autoplay = true;
 }
 
 static void
@@ -122,7 +122,7 @@ autoMove(gamestate_t *state, gamehistory_t *history)
   printf("Calculation took: %ldms\n", timer_delta_ms(&movetimer));
   printf("Best move is: ");
   GameMove_print(&bestmove);
-  printf("\n");
+  printf(" (score=%i)\n", bestmove.score);
   printf("Looked ahead: %i moves.", lookahead);
   printf("\n");
 
@@ -147,8 +147,12 @@ repl()
   gamestate_t gamestate;
   GameState_init(&gamestate, NULL, PLAYER1);
 
-  gamehistory_t gamehistory;
-  GameHistory_init(&gamehistory, &gamestate);
+
+  // gamehistory_t gamehistory;
+  // GameHistory_init(&gamehistory, &gamestate);
+
+  gamehistory_t *gamehistory = malloc(sizeof(gamehistory_t));
+  GameHistory_init(gamehistory, &gamestate);
 
   size_t num_moves;
   char **moves;
@@ -168,7 +172,8 @@ repl()
   for (unsigned int i = 0; i < num_moves; i++)
   {
     printf("Replaying move: %s\n", *(moves + i));
-    playMove(&gamestate, &gamehistory, *(moves + i));
+    // playMove(&gamestate, &gamehistory, *(moves + i));
+    playMove(&gamestate, gamehistory, *(moves + i));
   }
 
   char *move;
@@ -197,16 +202,26 @@ repl()
     // term_clear("screen");
     GameState_print(&gamestate, as_player);
     printf("\n");
-    GameHistory_print(&gamehistory);
+    // GameHistory_print(&gamehistory);
+    GameHistory_print(gamehistory);
     printf("\nEnter next move (z to autocompute): ");
 
-    move = trim(case_lower(read_line(buffer, 40, stdin)));
+    if (autoplay)
+    {
+      move = "z";
+    }
+    else
+    {
+      move = trim(case_lower(read_line(buffer, 40, stdin)));
+    }
+
     printf("\n");
 
     if (strlen(move) == 1 && *(move) == 'z')
     {
       printf("Auto-calculating move...\n");
-      result = autoMove(&gamestate, &gamehistory);
+      // result = autoMove(&gamestate, &gamehistory);
+      result = autoMove(&gamestate, gamehistory);
 
       if (result != OK)
       {
@@ -215,6 +230,12 @@ repl()
       else if (GameState_isGameOver(&gamestate))
       {
         printf("Game Over!\n");
+        printf("\n");
+        // term_clear("screen");
+        GameState_print(&gamestate, as_player);
+        printf("\n");
+        // GameHistory_print(&gamehistory);
+        GameHistory_print(gamehistory);
         break;
       }
     }
@@ -226,7 +247,8 @@ repl()
     else if (strlen(move) == 1 && *(move) == 'u')
     {
       printf("Undoing last move...");
-      gamehistory_t *lastmove = GameHistory_pop(&gamehistory);
+      // gamehistory_t *lastmove = GameHistory_pop(&gamehistory);
+      gamehistory_t *lastmove = GameHistory_pop(gamehistory);
       if (lastmove != NULL)
       {
         GameState_clone(&(lastmove->state), &gamestate);
@@ -255,7 +277,8 @@ repl()
     }
     else
     {
-      result = playMove(&gamestate, &gamehistory, move);
+      // result = playMove(&gamestate, &gamehistory, move);
+      result = playMove(&gamestate, gamehistory, move);
       if (result != OK)
       {
         printf("Illegal move: %s\n", moveDescription(result));
@@ -268,7 +291,8 @@ repl()
     }
   }
 
-  GameHistory_destroy(&gamehistory);
+  // GameHistory_destroy(&gamehistory);
+  GameHistory_destroy(gamehistory);
 }
 
 int
@@ -276,7 +300,7 @@ main(int argc, char **argv)
 {
   command_t cmd;
   command_init(&cmd, argv[0], "0.0.1");
-  command_option(&cmd, "-v", "--verbose", "enable verbose stuff", setVerbose);
+  command_option(&cmd, "-z", "--autoplay", "enable autoplay", setAutoPlay);
   command_option(&cmd, "-H", "--history [arg]", "history to play-back (default \"\")", loadHistory);
   command_option(&cmd, "-d", "--delimeter [arg]", "history delimeter (default \",\")", historyDelimeter);
   command_parse(&cmd, argc, argv);

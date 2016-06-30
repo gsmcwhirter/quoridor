@@ -2,8 +2,10 @@ CC?=gcc-6
 SRC?=src
 DEPS=$(SRC)/deps
 BUILD=build
+WALLSCORE?=1
+PATHSCORE?=1
 
-CFLAGS=-O2 -std=c11 -Wall -Wextra -Isrc -Isrc/deps -Isrc/lib -pthread
+CFLAGS=-O2 -std=c11 -Wall -Wextra -Isrc -Isrc/deps -Isrc/lib -pthread -DWALL_SCORE=$(WALLSCORE) -DPATH_SCORE=$(PATHSCORE)
 # -pg, -DDEBUG, -DSEVERAL -DDEBUGAI -DDEBUGAI2 -DDEBUGAI3
 # LIBSOURCES=$(wildcard $(SRC)/lib/*.c $(DEPS)$(DEPS)/term/term.c $(DEPS)/commander/commander.c $(DEPS)/strdup/strdup.c $(DEPS)/case/case.c $(DEPS)/occurrences/occurrences.c $(DEPS)/trim/trim.c $(DEPS)/strsplit/strsplit.c)
 LIBSOURCES=$(wildcard $(SRC)/lib/*.c $(DEPS)/**/*.c)

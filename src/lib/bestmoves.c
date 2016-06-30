@@ -1,7 +1,6 @@
 #include <stdio.h>
 
 #include "bestmoves.h"
-#include "moveseq.h"
 
 void
 BestMoves_init(bestmoves_t *bm)
