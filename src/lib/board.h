@@ -5,6 +5,7 @@
 #include <stdbool.h>
 
 #include "graph.h"
+#include "move.h"
 
 #define SQUARES_SIZE 9
 #define SQUARES_SIZE_SQ 81
@@ -14,22 +15,6 @@
 #define PLAYER_1_COLOR "red"
 #define PLAYER_2_COLOR "yellow"
 #define LABEL_COLOR "cyan"
-
-typedef enum player {
-  PLAYER1 = 1,
-  PLAYER2 = 2
-} player_t;
-
-typedef enum walldir {
-  HORIZONTAL,
-  VERTICAL,
-  NONE
-} walldir_t;
-
-typedef struct Wall {
-  int loc;
-  walldir_t dir;
-} wall_t;
 
 typedef struct Board {
   graph_t squares;
@@ -46,7 +31,7 @@ void Board_init(board_t *board);
 board_t * Board_clone(const board_t *board, board_t *new_board);
 bool Board_isWallAtCorner(const board_t *board, unsigned char r, char c);
 void Board_setWallAtCorner(board_t *board, unsigned char r, char c);
-void Board_print(const board_t *board, player_t as_player);
+void Board_print(const board_t *board, player_t as_player, gamemove_t *lastmove);
 bool Board_wallBetween(const board_t *board, unsigned char r1, char c1, unsigned char r2, char c2);
 bool Board_addWall(board_t *board, walldir_t walldir, unsigned char r, char c);
 bool Board_movePlayer(board_t *board, player_t player, unsigned char r, char c);

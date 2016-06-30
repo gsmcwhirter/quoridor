@@ -91,7 +91,7 @@ AIStage_advance(const aistage_t *oldais, aistage_t *ais, gamemove_t *move) //clo
     // printf("MOVE NOT APPLIED!\n");
     // GameMove_print(move);
     // printf("\n");
-    GameState_print(&(ais->gamestate), PLAYER1);
+    GameState_print(&(ais->gamestate), PLAYER1, move);
     // printf("\t%s\n", moveDescription(res));
   }
   GameState_togglePlayer(&(ais->gamestate));

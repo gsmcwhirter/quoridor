@@ -33,7 +33,7 @@ char * moveDescription(moveresult_t res);
 
 void GameState_init(gamestate_t *state, board_t *board, player_t player);
 gamestate_t * GameState_clone(const gamestate_t *state, gamestate_t * newstate);
-void GameState_print(const gamestate_t *state, player_t as_player);
+void GameState_print(const gamestate_t *state, player_t as_player, gamemove_t *lastmove);
 moveresult_t GameState_applyMove(gamestate_t *state, gamemove_t *move, bool force);
 moveresult_t GameState_moveCurrentPlayer(gamestate_t *state, unsigned char r, char c, bool force);
 moveresult_t GameState_legalMove(const gamestate_t *state, player_t player, unsigned char r, char c);

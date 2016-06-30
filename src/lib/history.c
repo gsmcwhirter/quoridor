@@ -137,6 +137,25 @@ GameHistory_pop(gamehistory_t *history)
   }
 }
 
+gamehistory_t *
+GameHistory_last(gamehistory_t *history)
+{
+  gamehistory_t *tail = history;
+  while (tail->next != NULL)
+  {
+    tail = tail->next;
+  }
+
+  if (tail->prev != NULL)
+  {
+    return tail->prev;
+  }
+  else
+  {
+    return NULL;
+  }
+}
+
 void
 GameHistory_print(gamehistory_t *history)
 {

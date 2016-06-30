@@ -196,11 +196,16 @@ repl()
   }
 
   moveresult_t result;
+  gamehistory_t *most_recent = NULL;
   while (true)
   {
     printf("\n");
     // term_clear("screen");
-    GameState_print(&gamestate, as_player);
+    most_recent = GameHistory_last(gamehistory);
+    if (most_recent != NULL && most_recent->move_set)
+      GameState_print(&gamestate, as_player, &(most_recent->move));
+    else
+      GameState_print(&gamestate, as_player, NULL);
     printf("\n");
     // GameHistory_print(&gamehistory);
     GameHistory_print(gamehistory);
@@ -232,7 +237,11 @@ repl()
         printf("Game Over!\n");
         printf("\n");
         // term_clear("screen");
-        GameState_print(&gamestate, as_player);
+        most_recent = GameHistory_last(gamehistory);
+        if (most_recent != NULL && most_recent->move_set)
+          GameState_print(&gamestate, as_player, &(most_recent->move));
+        else
+          GameState_print(&gamestate, as_player, NULL);
         printf("\n");
         // GameHistory_print(&gamehistory);
         GameHistory_print(gamehistory);

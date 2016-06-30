@@ -69,9 +69,9 @@ GameState_clone(const gamestate_t *state, gamestate_t * newstate)
 
 
 void
-GameState_print(const gamestate_t *state, player_t as_player)
+GameState_print(const gamestate_t *state, player_t as_player, gamemove_t *lastmove)
 {
-  Board_print(&(state->board), as_player);
+  Board_print(&(state->board), as_player, lastmove);
   printf("\n");
   printf("Turn of player: ");
   if (state->player == PLAYER1)
@@ -195,7 +195,7 @@ GameState_addWallCurrentPlayer(gamestate_t *state, walldir_t walldir, unsigned c
   moveresult_t res;
   if (force) res = OK;
   else res = GameState_legalWall(state, state->player, walldir, r, c);
-  
+
   if (res != OK)
   {
     return res;

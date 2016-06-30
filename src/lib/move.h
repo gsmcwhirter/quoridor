@@ -1,10 +1,26 @@
 #ifndef MOVE_H
 #define MOVE_H
 
+#include <stdbool.h>
+
 #define BLOCKED_SCORE -10000000
 #define WIN_SCORE 1000000
 
-#include "board.h"
+typedef enum player {
+  PLAYER1 = 1,
+  PLAYER2 = 2
+} player_t;
+
+typedef enum walldir {
+  HORIZONTAL,
+  VERTICAL,
+  NONE
+} walldir_t;
+
+typedef struct Wall {
+  int loc;
+  walldir_t dir;
+} wall_t;
 
 typedef struct GameMove {
   player_t player;

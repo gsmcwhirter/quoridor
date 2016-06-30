@@ -105,7 +105,7 @@ Board_setWallAtCorner(board_t *board, unsigned char r, char col)
 }
 
 void
-Board_printHwall(const board_t *board, unsigned char r, char col)
+Board_printHwall(const board_t *board, unsigned char r, char col, gamemove_t *lastmove)
 {
   if (col < 'a')
     printf("   "); //label blank on horizontal
@@ -115,6 +115,13 @@ Board_printHwall(const board_t *board, unsigned char r, char col)
     if (Board_wallBetween(board, r, col, r+1, col))
     {
       term_bold();
+      if (lastmove != NULL && lastmove->wall == HORIZONTAL && lastmove->row == r && (lastmove->col == col || lastmove->col == col-1))
+      {
+        if (lastmove->player == PLAYER1)
+          term_color(PLAYER_1_COLOR);
+        else
+          term_color(PLAYER_2_COLOR);
+      }
       printf("---");
       term_reset();
     }
@@ -126,12 +133,19 @@ Board_printHwall(const board_t *board, unsigned char r, char col)
 }
 
 void
-Board_printCorner(const board_t *board, unsigned char r, char col)
+Board_printCorner(const board_t *board, unsigned char r, char col, gamemove_t *lastmove)
 {
   //print corner
   if (Board_isWallAtCorner(board, r, col))
   {
     term_bold();
+    if (lastmove != NULL && lastmove->wall != NONE && lastmove->row == r && lastmove->col == col)
+    {
+      if (lastmove->player == PLAYER1)
+        term_color(PLAYER_1_COLOR);
+      else
+        term_color(PLAYER_2_COLOR);
+    }
     printf("+");
     term_reset();
   }
@@ -144,7 +158,7 @@ Board_printCorner(const board_t *board, unsigned char r, char col)
 }
 
 void
-Board_printHWalls(const board_t *board, player_t as_player, unsigned char r)
+Board_printHWalls(const board_t *board, player_t as_player, unsigned char r, gamemove_t *lastmove)
 {
   for (char cc = 0; cc <= SQUARES_SIZE; cc++)
   {
@@ -158,20 +172,20 @@ Board_printHWalls(const board_t *board, player_t as_player, unsigned char r)
 
     if (as_player == PLAYER2)
     {
-      Board_printCorner(board, r, col);
-      Board_printHwall(board, r, col);
+      Board_printCorner(board, r, col, lastmove);
+      Board_printHwall(board, r, col, lastmove);
     }
     else
     {
-      Board_printHwall(board, r, col);
-      Board_printCorner(board, r, col);
+      Board_printHwall(board, r, col, lastmove);
+      Board_printCorner(board, r, col, lastmove);
     }
   }
 }
 
 
 void
-Board_printVWall(const board_t *board, unsigned char r, char col)
+Board_printVWall(const board_t *board, unsigned char r, char col, gamemove_t *lastmove)
 {
   if (r > 0)
   {
@@ -186,7 +200,17 @@ Board_printVWall(const board_t *board, unsigned char r, char col)
       if (Board_wallBetween(board, r, col, r, col+1))
       {
         term_bold();
-        printf("|");
+        if (lastmove != NULL && lastmove->wall == VERTICAL && (lastmove->row == r-1 || lastmove->row == r) && lastmove->col == col)
+        {
+          if (lastmove->player == PLAYER1)
+            term_color(PLAYER_1_COLOR);
+          else
+            term_color(PLAYER_2_COLOR);
+          printf("|");
+          term_reset();
+        }
+        else
+          printf("|");
         term_reset();
       }
       else
@@ -203,7 +227,7 @@ Board_printVWall(const board_t *board, unsigned char r, char col)
 
 
 void
-Board_printSquare(const board_t *board, unsigned char r, char col)
+Board_printSquare(const board_t *board, unsigned char r, char col, gamemove_t *lastmove)
 {
   if (r > 0)
   {
@@ -219,13 +243,19 @@ Board_printSquare(const board_t *board, unsigned char r, char col)
       if (r == locToRow(board->player1) && col == 'a' + locToCol(board->player1))
       {
         term_color(PLAYER_1_COLOR);
-        printf(" 1 ");
+        if (lastmove != NULL && lastmove->wall == NONE && lastmove->row == r && lastmove->col == col)
+          printf("*1*");
+        else
+          printf(" 1 ");
         term_reset();
       }
       else if (r == locToRow(board->player2) && col == 'a' + locToCol(board->player2))
       {
         term_color(PLAYER_2_COLOR);
-        printf(" 2 ");
+        if (lastmove != NULL && lastmove->wall == NONE && lastmove->row == r && lastmove->col == col)
+          printf("*2*");
+        else
+          printf(" 2 ");
         term_reset();
       }
       else
@@ -251,7 +281,7 @@ Board_printSquare(const board_t *board, unsigned char r, char col)
 
 
 void
-Board_printVWalls(const board_t *board, player_t as_player, unsigned char r)
+Board_printVWalls(const board_t *board, player_t as_player, unsigned char r, gamemove_t *lastmove)
 {
   for (char cc = 0; cc <= SQUARES_SIZE; cc++)
   {
@@ -264,20 +294,20 @@ Board_printVWalls(const board_t *board, player_t as_player, unsigned char r)
     char col = 'a' + c - 1;
     if (as_player == PLAYER2)
     {
-      Board_printVWall(board, r, col);
-      Board_printSquare(board, r, col);
+      Board_printVWall(board, r, col, lastmove);
+      Board_printSquare(board, r, col, lastmove);
     }
     else
     {
-      Board_printSquare(board, r, col);
-      Board_printVWall(board, r, col);
+      Board_printSquare(board, r, col, lastmove);
+      Board_printVWall(board, r, col, lastmove);
     }
   }
 }
 
 
 void
-Board_print(const board_t *board, player_t as_player)
+Board_print(const board_t *board, player_t as_player, gamemove_t *lastmove)
 {
   for (char rr = SQUARES_SIZE; rr >= 0; rr--)
   {
@@ -285,17 +315,17 @@ Board_print(const board_t *board, player_t as_player)
     if (as_player == PLAYER2)
     {
       r = SQUARES_SIZE - rr;
-      Board_printVWalls(board, as_player, r);
+      Board_printVWalls(board, as_player, r, lastmove);
       printf("\n");
-      Board_printHWalls(board, as_player, r);
+      Board_printHWalls(board, as_player, r, lastmove);
       printf("\n");
     }
     else
     {
       r = rr;
-      Board_printHWalls(board, as_player, r);
+      Board_printHWalls(board, as_player, r, lastmove);
       printf("\n");
-      Board_printVWalls(board, as_player, r);
+      Board_printVWalls(board, as_player, r, lastmove);
       printf("\n");
     }
   }
