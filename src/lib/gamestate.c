@@ -95,25 +95,28 @@ GameState_print(const gamestate_t *state, player_t as_player)
 
 
 moveresult_t
-GameState_applyMove(gamestate_t *state, gamemove_t *move)
+GameState_applyMove(gamestate_t *state, gamemove_t *move, bool force)
 {
   if (move->player != state->player) return NOT_YOUR_TURN;
 
   if (move->wall == NONE)
   {
-    return GameState_moveCurrentPlayer(state, move->row, move->col);
+    return GameState_moveCurrentPlayer(state, move->row, move->col, force);
   }
   else
   {
-    return GameState_addWallCurrentPlayer(state, move->wall, move->row, move->col);
+    return GameState_addWallCurrentPlayer(state, move->wall, move->row, move->col, force);
   }
 }
 
 
 moveresult_t
-GameState_moveCurrentPlayer(gamestate_t *state, unsigned char r, char c)
+GameState_moveCurrentPlayer(gamestate_t *state, unsigned char r, char c, bool force)
 {
-  moveresult_t res = GameState_legalMove(state, state->player, r, c);
+  moveresult_t res;
+  if (force) res = OK;
+  else res = GameState_legalMove(state, state->player, r, c);
+
   if (res == OK)
   {
     Board_movePlayer(&(state->board), state->player, r, c);
@@ -187,9 +190,12 @@ GameState_legalMove(const gamestate_t *state, player_t player, unsigned char r, 
 
 
 moveresult_t
-GameState_addWallCurrentPlayer(gamestate_t *state, walldir_t walldir, unsigned char r, char c)
+GameState_addWallCurrentPlayer(gamestate_t *state, walldir_t walldir, unsigned char r, char c, bool force)
 {
-  moveresult_t res = GameState_legalWall(state, state->player, walldir, r, c);
+  moveresult_t res;
+  if (force) res = OK;
+  else res = GameState_legalWall(state, state->player, walldir, r, c);
+  
   if (res != OK)
   {
     return res;

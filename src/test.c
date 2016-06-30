@@ -134,57 +134,18 @@ main()
 
 
   /// Test AI
-  #ifdef DEBUG
-    printf("Creating move sequence...\n");
-  #endif
+  // #ifdef DEBUG
+  //   printf("Creating move sequence...\n");
+  // #endif
   // moveseq_t ms;
   // MoveSequence_init(&ms);
   // #ifdef DEBUG
   //   printf("done.\n");
   // #endif
 
-  #ifdef DEBUG
-    printf("Creating history...\n");
-  #endif
-  gamehistory_t history;
-  GameHistory_init(&history, &state);
-  GameHistory_print(&history);
-  #ifdef DEBUG
-    printf("done creating history.\n");
-  #endif
-
-  #ifdef DEBUGAI
-    printf("Creating AI Stage...\n");
-  #endif
-  aistage_t ai;
-  AIStage_init(&ai, &state); //, &history);
-  #ifdef DEBUGAI
-    printf("generating possible moves...\n");
-  #endif
-  AIStage_generatePossibleMoves(&ai);
-  #ifdef DEBUGAI
-    printf("done setup.\n");
-  #endif
-
   // PossibleMoves_print(&(ai.nextmoves));
   // GameHistory_print(&(ai.history));
 
-  bestmoves_t bm;
-  BestMoves_init(&bm);
-
-  timer_t bestmove_timer3;
-  // timer_t bestmove_timer5;
-  // timer_t bestmove_timer7;
-
-
-  timer_start(&bestmove_timer3);
-  // AIStage_bestMoves(&ai, &bm, &history, &ms, 3);
-  AIStage_bestMoves(&ai, &bm, &history, 3);
-  timer_pause(&bestmove_timer3);
-  printf("3 Moves: %ldms\n", timer_delta_ms(&bestmove_timer3));
-  printf("Number of results: %i\n", bm.size);
-  printf("Best score: %i\n", bm.score);
-  BestMoves_print(&bm);
   // BestMoves_destroy(&bm);
 
   // BestMoves_reset(&bm);
@@ -214,7 +175,8 @@ main()
 
   /// End Test AI
 
-
+  // searchresult_t res;
+  //
   // /// Test Moves etc.
   // Board_addWall(&(state.board), VERTICAL, 6, 'g');
   // Board_addWall(&(state.board), HORIZONTAL, 3, 'e');
@@ -235,6 +197,46 @@ main()
   //   Path_print(&(res.shortest_paths[i]));
   // }
   // /// End Test Moves etc.
+
+
+  bestmoves_t bm;
+  BestMoves_init(&bm);
+
+  timer_t bestmove_timer3;
+  // timer_t bestmove_timer5;
+  // timer_t bestmove_timer7;
+
+  #ifdef DEBUG
+    printf("Creating history...\n");
+  #endif
+  gamehistory_t history;
+  GameHistory_init(&history, &state);
+  GameHistory_print(&history);
+  #ifdef DEBUG
+    printf("done creating history.\n");
+  #endif
+
+  #ifdef DEBUGAI
+    printf("Creating AI Stage...\n");
+  #endif
+  aistage_t ai;
+  AIStage_init(&ai, &state); //, &history);
+  #ifdef DEBUGAI
+    printf("generating possible moves...\n");
+  #endif
+  AIStage_generatePossibleMoves(&ai);
+  #ifdef DEBUGAI
+    printf("done setup.\n");
+  #endif
+
+  timer_start(&bestmove_timer3);
+  // AIStage_bestMoves(&ai, &bm, &history, &ms, 3);
+  AIStage_bestMoves(&ai, &bm, &history, 1);
+  timer_pause(&bestmove_timer3);
+  printf("4 Moves: %ldms\n", timer_delta_ms(&bestmove_timer3));
+  printf("Number of results: %i\n", bm.size);
+  printf("Best score: %i\n", bm.score);
+  BestMoves_print(&bm);
 
   return 0;
 }

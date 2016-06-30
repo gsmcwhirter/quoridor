@@ -1,5 +1,7 @@
 #include <stdio.h>
 #include <stdbool.h>
+#include <sys/time.h>
+#include <signal.h>
 
 #include "ai.h"
 #include "board.h"
@@ -12,37 +14,31 @@
 
 #define WALL_SCORE 3
 #define PATH_SCORE 1
-#define BEST_TOLERANCE 1
+#define BEST_TOLERANCE 0
 
 
 void
 AIStage_init(aistage_t *ais, gamestate_t *gamestate) //, gamehistory_t *history)
 {
   #ifdef DEBUGAI
-    printf("AIS Setting player...\n");
+    printf("AIS Init Setting player... (%i)\n", gamestate->player);
   #endif
   ais->my_player = gamestate->player;
   #ifdef DEBUGAI
-    printf("AIS Cloning state...\n");
+    if (ais->my_player == PLAYER1) printf("\tPlayer 1\n");
+    else printf("\tPlayer 2\n");
+    printf("AIS Init Cloning state...\n");
   #endif
   GameState_clone(gamestate, &(ais->gamestate));
   #ifdef DEBUGAI
-    printf("AIS done state.\n");
+    printf("AIS Init done state.\n");
   #endif
-  // #ifdef DEBUGAI
-  //   printf("AIS Cloning history...\n");
-  // #endif
-  // GameHistory_print(history);
-  // GameHistory_clone(history, &(ais->history));
-  // #ifdef DEBUGAI
-  //   printf("AIS done history.\n");
-  // #endif
   #ifdef DEBUGAI
-    printf("AIS Initializing possible moves...\n");
+    printf("AIS Init Initializing possible moves...\n");
   #endif
   PossibleMoves_init(&(ais->nextmoves));
   #ifdef DEBUGAI
-    printf("AIS done possible moves.\n");
+    printf("AIS Init done possible moves.\n");
   #endif
   ais->stage_score_defined = false;
 }
@@ -50,35 +46,42 @@ AIStage_init(aistage_t *ais, gamestate_t *gamestate) //, gamehistory_t *history)
 aistage_t *
 AIStage_advance(const aistage_t *oldais, aistage_t *ais, gamemove_t *move) //clone equiv
 {
+  #ifdef DEBUGAI
+    printf("AIS Advance starting.\n");
+  #endif
   if (ais == NULL)
   {
     ais = malloc(sizeof(aistage_t));
   }
 
+  ais->my_player = oldais->my_player;
+
   #ifdef DEBUGAI
-    printf("Cloning state.\n");
+    printf("AIS Advance Cloning state.\n");
   #endif
   GameState_clone(&(oldais->gamestate), &(ais->gamestate));
-  #ifdef DEBUG
-    printf("Advancing state.\n");
-  #endif
-  GameState_applyMove(&(ais->gamestate), move);
-  GameState_togglePlayer(&(ais->gamestate));
-  // #ifdef DEBUGAI
-  //   printf("Cloning history.\n");
-  // #endif
-  // GameHistory_clone(&(oldais->history), &(ais->history));
-  // #ifdef DEBUGAI
-  //   printf("Advancing history.\n");
-  // #endif
-  // GameHistory_push(&(ais->history), move, &(ais->gamestate));
   #ifdef DEBUGAI
-    printf("Cloning and updating possible moves.\n");
+    printf("AIS Advance Advancing state.\n");
+    printf("\tPlaying move:");
+    GameMove_print(move);
+    printf("\n");
+  #endif
+  moveresult_t res = GameState_applyMove(&(ais->gamestate), move, true);
+  if (res != OK)
+  {
+    printf("MOVE NOT APPLIED!\n");
+    GameMove_print(move);
+    printf("\n");
+    GameState_print(&(ais->gamestate), PLAYER1);
+    printf("\t%s\n", moveDescription(res));
+  }
+  GameState_togglePlayer(&(ais->gamestate));
+  #ifdef DEBUGAI
+    printf("AIS Advance Cloning and updating possible moves.\n");
   #endif
   PossibleMoves_clone(&(oldais->nextmoves), &(ais->nextmoves));
   AIStage_updatePossibleMoves(ais);
   ais->stage_score_defined = false;
-  // ais->prev = oldais;
 
   return ais;
 }
@@ -277,7 +280,7 @@ void AIStage_updatePossibleMoves(aistage_t *ais)
 }
 
 int
-AIStage_evaluateGameState(aistage_t *ais)
+AIStage_evaluateGameState(aistage_t *ais, gamehistory_t *history)
 {
   if (ais->stage_score_defined)
     return ais->stage_score;
@@ -302,7 +305,8 @@ AIStage_evaluateGameState(aistage_t *ais)
   else
   {
     // p1path = *(sr->shortest_paths);
-    p1pathlen = sr.shortest_paths[0].length;
+    // p1pathlen = sr.shortest_paths[0].length;
+    p1pathlen = sr.shortest_length;
   }
 
   SearchResult_reset(&sr);
@@ -316,16 +320,32 @@ AIStage_evaluateGameState(aistage_t *ais)
   else
   {
     // p2path = *(sr->shortest_paths);
-    p2pathlen = p1pathlen = sr.shortest_paths[0].length;;
+    // p2pathlen = p1pathlen = sr.shortest_paths[0].length;;
+    p2pathlen = sr.shortest_length;
   }
 
-  if (ais->gamestate.player == PLAYER2) //player 1 just played
+  #ifdef DEBUGAI
+    printf("State Evaluation:\n");
+    printf("\tP1 Path Length: %i\n", p1pathlen);
+    printf("\tP2 Path Length: %i\n", p2pathlen);
+    printf("\tP1 Wall Value: %i\n", p1walls);
+    printf("\tP2 Wall Value: %i\n", p2walls);
+  #endif
+
+
+  if (ais->my_player == PLAYER1) //player 1 just played
   {
     score = p1walls - p2walls + p2pathlen - p1pathlen;
+    #ifdef DEBUGAI
+      printf("\t(calculated for Player 1, got %i)\n", score);
+    #endif
   }
   else
   {
     score = p2walls - p1walls + p1pathlen - p2pathlen;
+    #ifdef DEBUGAI
+      printf("\t(calculated for Player 2, got %i)\n", score);
+    #endif
   }
 
   ais->stage_score_defined = true;
@@ -335,276 +355,274 @@ AIStage_evaluateGameState(aistage_t *ais)
 
 
 void
-// AIStage_bestMoves(aistage_t *ais, bestmoves_t *best, gamehistory_t *history, moveseq_t *ms, int lookahead)
-AIStage_bestMoves(aistage_t *ais, bestmoves_t *best, gamehistory_t *history, int lookahead)
+minimax_minimize(bestmoves_t *best, gamemove_t *move)
 {
-  #ifdef DEBUGAI2
-    printf("Calculating best moves for: ");
-    printf("Lookahead: %i\n", lookahead);
+  #ifdef DEBUGAI
+    printf("Minimize: starting\n");
   #endif
-  // odd lookahead is my turn, even is opponent's, but ignoring for now
-  bestmoves_t results;
-  BestMoves_init(&results);
-  // moveseq_t newms;
-  // MoveSequence_init(&newms);
+  if (best->score == BLOCKED_SCORE || move->score < best->score)
+  {
+    #ifdef DEBUGAI
+      printf("\tNew score is 'better' or no old score.\n");
+      printf("\t(old: %i, this: %i)\n", best->score, move->score);
+    #endif
+    best->score = move->score;
+    #ifdef DEBUGAI
+      printf("\tCleaning up existing moves\n");
+    #endif
+    for (int i = best->size - 1; i >= 0; i--)
+    {
+      if (best->moves[i].score > best->score + BEST_TOLERANCE)
+      {
+        best->size--;
+      }
+    }
+    #ifdef DEBUGAI
+      printf("\tAdding this move.\n");
+    #endif
+    BestMoves_add(best, move, false);
+  }
+  else if (move->score > BLOCKED_SCORE && move->score <= best->score + BEST_TOLERANCE)
+  {
+    #ifdef DEBUGAI
+      printf("\tNew score is not 'worse'.\n");
+      printf("\t(old: %i, this: %i)\n", best->score, move->score);
+      printf("\tAdding this move.\n");
+    #endif
+    BestMoves_add(best, move, false);
+  }
+  #ifdef DEBUGAI
+  else
+  {
+    printf("\tNew score is 'worse'.\n");
+    printf("\t(old: %i, this: %i)\n", best->score, move->score);
+  }
+  #endif
+}
+
+void
+minimax_maximize(bestmoves_t *best, gamemove_t *move)
+{
+  #ifdef DEBUGAI
+    printf("Maximize: starting\n");
+  #endif
+  if (best->score == BLOCKED_SCORE || move->score > best->score)
+  {
+    #ifdef DEBUGAI
+      printf("\tNew score is 'better' or no old score.\n");
+      printf("\t(old: %i, this: %i)\n", best->score, move->score);
+    #endif
+    best->score = move->score;
+    #ifdef DEBUGAI
+      printf("\tCleaning up existing moves\n");
+    #endif
+    for (int i = best->size - 1; i >= 0; i--)
+    {
+      if (best->moves[i].score < best->score - BEST_TOLERANCE)
+      {
+        best->size--;
+      }
+    }
+    #ifdef DEBUGAI
+      printf("\tAdding this move.\n");
+    #endif
+    BestMoves_add(best, move, true);
+  }
+  else if (move->score > BLOCKED_SCORE && move->score >= best->score - BEST_TOLERANCE)
+  {
+    #ifdef DEBUGAI
+      printf("\tNew score is not 'worse'.\n");
+      printf("\t(old: %i, this: %i)\n", best->score, move->score);
+      printf("\tAdding this move.\n");
+    #endif
+    BestMoves_add(best, move, true);
+  }
+  #ifdef DEBUGAI
+  else
+  {
+    printf("\tNew score is 'worse'.\n");
+    printf("\t(old: %i, this: %i)\n", best->score, move->score);
+  }
+  #endif
+}
+
+void
+minimax(aistage_t *ais, bestmoves_t *best, gamehistory_t *history, gamemove_t *move, int lookahead)
+{
+  #ifdef DEBUGAI
+    printf("Starting minimax: ");
+    printf("Lookahead %i!\n", lookahead);
+  #endif
 
   aistage_t next;
-  // AIStage_init(&next, &(ais->gamestate));
+  gamemove_t currmove;
+
+  bestmoves_t results;
+  BestMoves_init(&results);
+
+  if (lookahead == 0 || GameState_isGameOver(&(ais->gamestate)))
+  {
+    #ifdef DEBUGAI
+      printf("Minimax: evaluating state\n");
+    #endif
+    AIStage_evaluateGameState(ais, history);
+    #ifdef DEBUGAI
+      printf("Minimax: setting move score\n");
+    #endif
+    move->score = ais->stage_score;
+    #ifdef DEBUGAI
+      printf("Minimax: minimizing\n");
+    #endif
+    minimax_minimize(best, move);
+  }
+  else
+  {
+    for (int i = 0; i < 5 + ais->nextmoves.wall_size; i++)
+    {
+      if (i < 5 && i >= ais->nextmoves.walk_size)
+      {
+        continue;
+      }
+      GameMove_clone(&(ais->nextmoves.moves[i]), &currmove);
+      AIStage_advance(ais, &next, &currmove);
+      minimax(&next, &results, history, &currmove, lookahead-1);
+
+      currmove.score = results.score;
+      if (lookahead % 2 == 1)
+        minimax_maximize(best, &currmove);
+      else
+        minimax_minimize(best, &currmove);
+    }
+  }
+}
+
+void
+alphabeta(aistage_t *ais, bestmoves_t *best, gamehistory_t *history, gamemove_t *move, int lookahead, int alpha, int beta, bool maximizer)
+{
+  #ifdef DEBUGAI
+    printf("Starting alphabeta: ");
+    printf("Lookahead %i!\n", lookahead);
+    printf("alpha=%i, beta=%i\n", alpha, beta);
+  #endif
+
+  aistage_t next;
   gamemove_t *currmove;
 
-  #ifdef DEBUGAI
-    printf("Initialization done.\n");
-  #endif
+  bestmoves_t results;
+  BestMoves_init(&results);
 
-  for (int i = 0; i < 5 + ais->nextmoves.wall_size; i++)
+  if (lookahead == 0 || GameState_isGameOver(&(ais->gamestate)))
   {
-    BestMoves_reset(&results);
     #ifdef DEBUGAI
-      printf("Loop index %i in lookahead %i\n", i, lookahead);
+      printf("Alphabeta: evaluating state\n");
     #endif
-    if (i < 5 && i >= ais->nextmoves.walk_size)
-    {
-      #ifdef DEBUGAI
-        printf("Skipping due to missing walk move.\n");
-      #endif
-      continue;
-    }
-    else
-    {
-      #ifdef DEBUGAI
-        printf("Checking move: ");
-        GameMove_print(&(ais->nextmoves.moves[i]));
-        printf("\n");
-      #endif
-    }
-
-    // GameMove_clone(&(ais->nextmoves.moves[i]), &currmove);
-    currmove = &(ais->nextmoves.moves[i]);
-
+    AIStage_evaluateGameState(ais, history);
     #ifdef DEBUGAI
-      printf("Advancing the game state.\n");
+      printf("Alphabeta: setting move score\n");
     #endif
-    AIStage_advance(ais, &next, currmove);
+    move->score = ais->stage_score;
     #ifdef DEBUGAI
-      printf("Advancing done.\n");
+      printf("Alphabeta: minimizing\n");
     #endif
-
-    if (lookahead == 1)
+    // if (maximizer)
+    // {
+    //   minimax_maximize(best, move);
+    // }
+    // else
+    // {
+    //   minimax_minimize(best, move);
+    // }
+    best->score = move->score;
+    BestMoves_add(best, move, false);
+  }
+  else
+  {
+    #ifdef DEBUGAI
+      printf("Alphabeta: Considering possible moves.\n");
+    #endif
+    for (int i = 0; i < 5 + ais->nextmoves.wall_size; i++)
     {
-      #ifdef DEBUGAI
-        printf("Lookahead 1!\n");
-      #endif
-      #ifdef DEBUGAI
-        printf("Calculating stage score...\n");
-      #endif
-      AIStage_evaluateGameState(&next);
-      #ifdef DEBUGAI3
-        printf("Best so far: %i\n", best->score);
-        printf("Current score: %i\n", next.stage_score);
-      #endif
-      #ifdef DEBUGAI
-        printf("Killing bad results...\n");
-      #endif
-      if (next.stage_score > best->score)
+      BestMoves_reset(&results);
+      if (i < 5 && i >= ais->nextmoves.walk_size)
       {
-        best->score = next.stage_score; // now defined
-        for (int k = best->size - 1; k >= 0 ; k--)
+        continue;
+      }
+      // GameMove_clone(&(ais->nextmoves.moves[i]), &currmove);
+      currmove = &(ais->nextmoves.moves[i]);
+      #ifdef DEBUGAI
+        printf("\tMove under consideration:\n");
+        GameMove_print(currmove);
+        printf("\n");
+        printf("\tAdvancing stage.\n");
+      #endif
+      AIStage_advance(ais, &next, currmove);
+      #ifdef DEBUGAI
+        printf("\trecursing with alpha=%i, beta=%i.\n", alpha, beta);
+      #endif
+      alphabeta(&next, &results, history, currmove, lookahead-1, alpha, beta, maximizer ? false : true);
+
+      #ifdef DEBUGAI
+        printf("Alphabeta: returned from recursion.\n");
+      #endif
+      currmove->score = results.score;
+      #ifdef DEBUGAI
+        printf("\tScore of this move: %i\n", currmove->score);
+      #endif
+
+      // if (lookahead % 2 == 0)
+      if (maximizer)
+      {
+        #ifdef DEBUGAI
+          printf("\tI am the current player, so maximizing.\n");
+        #endif
+        alpha = (alpha > currmove->score) ? alpha : currmove->score;
+        minimax_maximize(best, currmove);
+        if (beta <= alpha)
         {
-          if ((best->moves + k)->score < best->score - BEST_TOLERANCE)
-          {
-            // MoveSequence_destroy(*(best.moves + k));
-            best->size--;
-            // if (k != best->size)
-            //   MoveSequence_clone((best->moves + best->size), (best->moves + k));
-            // // *(best.moves + k) = *(best.moves + best.size);
-            // // *(best.moves + best.size) = NULL;
-          }
+          #ifdef DEBUGAI
+            printf("\tTerminated loop early.\n");
+          #endif
+          break;
         }
       }
-
-      #ifdef DEBUGAI
-        printf("Trying to add this result...\n");
-      #endif
-
-      if (next.stage_score >= best->score - BEST_TOLERANCE)
-      {
-        #ifdef DEBUGAI
-          printf("It is a decent one...\n");
-        #endif
-        // #ifdef DEBUGAI
-        //   printf("Cloning move sequence...\n");
-        // #endif
-        // MoveSequence_clone(ms, &newms);
-        // #ifdef DEBUGAI
-        //   printf("Adding this move...\n");
-        // #endif
-        // MoveSequence_add(&newms, &currmove);
-        #ifdef DEBUGAI
-          printf("Updating score...\n");
-        #endif
-        currmove->score = next.stage_score;
-        #ifdef DEBUGAI
-          printf("Adding new best move...\n");
-        #endif
-        BestMoves_add(best, currmove, false);
-        #ifdef DEBUGAI
-          printf("recording done.");
-        #endif
-      }
-      #ifdef DEBUGAI
       else
       {
-        printf("Not good enough.\n");
-      }
-      #endif
-    }
-    else if (lookahead % 2 == 0)
-    {
-      #ifdef DEBUGAI
-        printf("Opponent lookahead!\n");
-      #endif
-      // like the else, but minimize instead of maximize
-      // MoveSequence_clone(ms, &newms);
-      // MoveSequence_add(&newms, &(ais->nextmoves.moves[i]));
-      // AIStage_bestMoves(&next, &results, history, &newms, lookahead - 1);
-      AIStage_bestMoves(&next, &results, history, lookahead - 1);
-
-      #ifdef DEBUGAI
-        printf("results are in (size = %i, score = %i, current best = %i)\n", results.size, results.score, best->score);
-      #endif
-
-      currmove->score = results.score;
-
-      if (best->score == BLOCKED_SCORE || (results.score > BLOCKED_SCORE && best->score > results.score)) // results are far "better" for opponent
-      {
         #ifdef DEBUGAI
-          printf("results are 'better' than the best! (r: %i vs b: %i)\n", results.score, best->score);
+          printf("\tI am NOT the current player, so minimizing.\n");
         #endif
-        // BestMoves_clone(&results, best);
-        // BestMoves_destroy(&results);
-        BestMoves_reset(best);
-        BestMoves_add(best, currmove, false);
-        best->score = currmove->score;
-      }
-      else if (results.score > best->score && best->score > BLOCKED_SCORE) //best is far better
-      {
-        #ifdef DEBUGAI
-          printf("best is 'better' than results (r: %i vs b: %i)\n", results.score, best->score);
-        #endif
-        // BestMoves_destroy(&results);
-      }
-      else //mixed results
-      {
-        #ifdef DEBUGAI
-          printf("mixed results. (r: %i vs b: %i)\n", results.score, best->score);
-        #endif
-        for (int b = 0; b < results.size; b++)
+        beta = (beta < currmove->score) ? beta : currmove->score;
+        minimax_minimize(best, currmove);
+        if (beta <= alpha)
         {
-          if (results.moves[b].score > BLOCKED_SCORE && results.moves[b].score < best->score)
-          {
-            #ifdef DEBUGAI
-              printf("results has a better item. (%i) cleaning up best.\n", results.moves[b].score);
-            #endif
-            best->score = results.moves[b].score;
-            for (int k = best->size - 1; k >= 0 ; k--)
-            {
-              if (best->moves[k].score > best->score)
-              {
-                best->size--;
-                // MoveSequence_clone((best->moves + best->size), (best->moves + k));
-                // // *(best.moves + k) = *(best.moves + best.size);
-                // // *(best.moves + best.size) = NULL;
-              }
-            }
-          }
-
-          if (results.moves[b].score > BLOCKED_SCORE && results.moves[b].score <= best->score)
-          {
-            currmove->score = results.moves[b].score;
-            #ifdef DEBUGAI
-              printf("adding current result to best (%i)\n", results.moves[b].score);
-            #endif
-            // BestMoves_add(best, &(results.moves[b]), false);
-            BestMoves_add(best, currmove, false);
-            #ifdef DEBUGAI
-              printf("added.\n");
-            #endif
-          }
           #ifdef DEBUGAI
-          else
-          {
-            printf("current result wasn't good enough\n");
-          }
+            printf("\tTerminated loop early.\n");
           #endif
+          break;
         }
       }
     }
-    else
-    {
-      #ifdef DEBUGAI
-        printf("Odd lookahead!\n");
-      #endif
-      // MoveSequence_clone(ms, &newms);
-      // MoveSequence_add(&newms, &(ais->nextmoves.moves[i]));
-      // AIStage_bestMoves(&next, &results, history, &newms, lookahead - 1);
-      AIStage_bestMoves(&next, &results, history, lookahead - 1);
-
-      currmove->score = results.score;
-
-      if (best->score == BLOCKED_SCORE || best->score < results.score - BEST_TOLERANCE) // results are far better
-      {
-        // BestMoves_clone(&results, best);
-        BestMoves_reset(best);
-        BestMoves_add(best, currmove, false);
-        best->score = currmove->score;
-        // BestMoves_destroy(&results);
-      }
-      else if (results.score < best->score - BEST_TOLERANCE) //best is far better
-      {
-        // BestMoves_destroy(&results);
-      }
-      else //mixed results
-      {
-        for (int b = 0; b < results.size; b++)
-        {
-          if (results.moves[b].score > best->score)
-          {
-            best->score = results.moves[b].score;
-            for (int k = best->size - 1; k >= 0 ; k--)
-            {
-              if (best->moves[k].score < best->score - BEST_TOLERANCE)
-              {
-                best->size--;
-                // MoveSequence_clone((best->moves + best->size), (best->moves + k));
-                // // *(best.moves + k) = *(best.moves + best.size);
-                // // *(best.moves + best.size) = NULL;
-              }
-            }
-          }
-
-          if (results.moves[b].score >= best->score - BEST_TOLERANCE)
-          {
-            currmove->score = results.moves[b].score;
-            // BestMoves_add(best, &(results.moves[b]), false);
-            BestMoves_add(best, currmove, false);
-          }
-        }
-      }
-    }
-
-    #ifdef DEBUGAI
-      printf("Finished loop index %i in lookahead %i\n", i, lookahead);
-    #endif
   }
+}
 
-  #ifdef DEBUGAI2
-    printf("Done one BestMoves call for: ");
-    printf("Lookahead: %i\n", lookahead);
-    printf("\tBest score: %i\n", best->score);
+
+
+
+void
+AIStage_bestMove(aistage_t *ais, gamemove_t *bestmove, gamehistory_t *history, int lookahead, int timeout)
+{
+  #ifdef DEBUGAI
+    printf("Calculating best moves for player %i\n", ais->my_player);
+    printf("Looking ahead %i moves\n", lookahead);
   #endif
+  bestmoves_t best;
+  BestMoves_init(&best);
 
-  // BestMoves_destroy(&results);
-
-  // return best;
-
+  // minimax(ais, best, history, NULL, levels * 2, ais->my_player);
+  struct itimerval timer;
+  timer.it_value.tv_sec = 10;
+  timer.it_value.tv_usec = 0;
+  timer.it_interval.tv_sec = 0;
+  timer.it_interval.tv_usec = 0;
+  setitimer (ITIMER_VIRTUAL, &timer, 0);
+  alphabeta(ais, &best, history, NULL, lookahead, BLOCKED_SCORE - 1, -BLOCKED_SCORE + 1, true);
 }
