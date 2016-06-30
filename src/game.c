@@ -9,10 +9,12 @@
 #include "trim/trim.h"
 #include "strsplit/strsplit.h"
 #include "term/term.h"
+#include "timer/timer.h"
 
 #include "board.h"
 #include "gamestate.h"
 #include "history.h"
+#include "ai.h"
 
 #define UNUSED(x) (void)(x)
 
@@ -82,7 +84,7 @@ playMove(gamestate_t* state, gamehistory_t *history, char* move)
   if (strlen(move) == 2) //move
   {
     // printf("Walk\n");
-    result = GameState_moveCurrentPlayer(state, *(move + 1) - '1' + 1, *(move));
+    result = GameState_moveCurrentPlayer(state, *(move + 1) - '1' + 1, *(move), false);
   }
   else //3; wall
   {
@@ -90,7 +92,7 @@ playMove(gamestate_t* state, gamehistory_t *history, char* move)
     if (*(move + 2) == 'h') dir = HORIZONTAL;
     else dir = VERTICAL;
 
-    result = GameState_addWallCurrentPlayer(state, dir, *(move + 1) - '1' + 1, *(move));
+    result = GameState_addWallCurrentPlayer(state, dir, *(move + 1) - '1' + 1, *(move), false);
   }
 
   if (result == OK)
@@ -101,6 +103,38 @@ playMove(gamestate_t* state, gamehistory_t *history, char* move)
   }
 
   return result;
+}
+
+moveresult_t
+autoMove(gamestate_t *state, gamehistory_t *history)
+{
+  moveresult_t res;
+  timer_t movetimer;
+  gamemove_t bestmove;
+  int lookahead;
+  aistage_t ai;
+  AIStage_init(&ai, state); //, &history);
+  AIStage_generatePossibleMoves(&ai);
+
+  timer_start(&movetimer);
+  AIStage_bestMove(&ai, history, &bestmove, &lookahead);
+  timer_pause(&movetimer);
+  printf("Calculation took: %ldms\n", timer_delta_ms(&movetimer));
+  printf("Best move is: ");
+  GameMove_print(&bestmove);
+  printf("\n");
+  printf("Looked ahead: %i moves.", lookahead);
+  printf("\n");
+
+  res = GameState_applyMove(state, &bestmove, false);
+
+  if (res == OK)
+  {
+    GameState_togglePlayer(state);
+    GameHistory_push(history, &bestmove, state);
+  }
+
+  return res;
 }
 
 void
@@ -164,11 +198,27 @@ repl()
     GameState_print(&gamestate, as_player);
     printf("\n");
     GameHistory_print(&gamehistory);
-    printf("\nEnter next move (empty to autocompute): ");
+    printf("\nEnter next move (z to autocompute): ");
+
     move = trim(case_lower(read_line(buffer, 40, stdin)));
     printf("\n");
 
-    if (strlen(move) == 1 && *(move) == 'q')
+    if (strlen(move) == 1 && *(move) == 'z')
+    {
+      printf("Auto-calculating move...\n");
+      result = autoMove(&gamestate, &gamehistory);
+
+      if (result != OK)
+      {
+        printf("Illegal move: %s\n", moveDescription(result));
+      }
+      else if (GameState_isGameOver(&gamestate))
+      {
+        printf("Game Over!\n");
+        break;
+      }
+    }
+    else if (strlen(move) == 1 && *(move) == 'q')
     {
       printf("Quitting...\n");
       break;
@@ -179,19 +229,6 @@ repl()
       gamehistory_t *lastmove = GameHistory_pop(&gamehistory);
       if (lastmove != NULL)
       {
-        // GameHistory_destroy(lastmove);
-        // GameState_destroy(gamestate);
-        // gamestate = GameState_create(Board_create(), PLAYER1);
-        // gamehistory_t *oldhistory = gamehistory;
-        // gamehistory = GameHistory_create();
-        // gamehistory_t *curr = oldhistory;
-        // while (curr != NULL && curr->move != NULL)
-        // {
-        //   playMove(gamestate, gamehistory, curr->move->srep);
-        //   curr = curr->next;
-        // }
-        // GameHistory_destroy(oldhistory);
-        // printf("done.\n");
         GameState_clone(&(lastmove->state), &gamestate);
         GameHistory_destroy(lastmove);
       }

@@ -2,6 +2,7 @@
 #define MOVE_H
 
 #define BLOCKED_SCORE -10000000
+#define WIN_SCORE 1000000
 
 #include "board.h"
 

@@ -1,7 +1,16 @@
 #include <stdio.h>
 #include <stdbool.h>
-#include <sys/time.h>
-#include <signal.h>
+#include <stdlib.h>
+
+#include <time.h>
+#include <pthread.h>
+#include <errno.h>
+#include <string.h>
+
+#ifdef __MACH__
+#include <mach/clock.h>
+#include <mach/mach.h>
+#endif
 
 #include "ai.h"
 #include "board.h"
@@ -12,10 +21,14 @@
 #include "search.h"
 #include "move.h"
 
-#define WALL_SCORE 3
+#define WALL_SCORE 1
 #define PATH_SCORE 1
 #define BEST_TOLERANCE 0
+#define CALCULATION_TIMEOUT_SEC 10
+#define CALCULATION_TIMEOUT_NSEC 0
 
+pthread_mutex_t calculating = PTHREAD_MUTEX_INITIALIZER;
+pthread_cond_t done = PTHREAD_COND_INITIALIZER;
 
 void
 AIStage_init(aistage_t *ais, gamestate_t *gamestate) //, gamehistory_t *history)
@@ -69,11 +82,11 @@ AIStage_advance(const aistage_t *oldais, aistage_t *ais, gamemove_t *move) //clo
   moveresult_t res = GameState_applyMove(&(ais->gamestate), move, true);
   if (res != OK)
   {
-    printf("MOVE NOT APPLIED!\n");
-    GameMove_print(move);
-    printf("\n");
+    // printf("MOVE NOT APPLIED!\n");
+    // GameMove_print(move);
+    // printf("\n");
     GameState_print(&(ais->gamestate), PLAYER1);
-    printf("\t%s\n", moveDescription(res));
+    // printf("\t%s\n", moveDescription(res));
   }
   GameState_togglePlayer(&(ais->gamestate));
   #ifdef DEBUGAI
@@ -212,15 +225,9 @@ AIStage_generateWalkMoves(aistage_t *ais)
   #endif
 }
 
-
 void
-AIStage_generatePossibleMoves(aistage_t *ais)
+AIStage_generateWallMoves(aistage_t *ais)
 {
-  #ifdef DEBUG
-    printf("Generating all possible moves.\n");
-  #endif
-  AIStage_generateWalkMoves(ais);
-
   int ct = 0;
   int r;
   char c;
@@ -240,10 +247,12 @@ AIStage_generatePossibleMoves(aistage_t *ais)
       // *(ais->nextmoves->wall_moves + ct) = GameMove_create(ais->gamestate->player, r, c, HORIZONTAL, buffer);
       ct++;
     }
+    #ifdef DEBUGAI
     else
     {
       printf("Skipping wall %c%ih\n", c, r);
     }
+    #endif
 
     if (Board_validWall(&(ais->gamestate.board), VERTICAL, r, c))
     {
@@ -252,13 +261,27 @@ AIStage_generatePossibleMoves(aistage_t *ais)
       // *(ais->nextmoves->wall_moves + ct) = GameMove_create(ais->gamestate->player, r, c, VERTICAL, buffer);
       ct++;
     }
+    #ifdef DEBUGAI
     else
     {
       printf("Skipping wall %c%iv\n", c, r);
     }
+    #endif
   }
 
   ais->nextmoves.wall_size = ct;
+}
+
+
+void
+AIStage_generatePossibleMoves(aistage_t *ais)
+{
+  #ifdef DEBUG
+    printf("Generating all possible moves.\n");
+  #endif
+  AIStage_generateWalkMoves(ais);
+
+  AIStage_generateWallMoves(ais);
 }
 
 
@@ -267,6 +290,18 @@ void AIStage_updatePossibleMoves(aistage_t *ais)
   AIStage_generateWalkMoves(ais);
 
   gamemove_t *move;
+  // if ((ais->gamestate.player == PLAYER1 && ais->gamestate.player1_walls == 0) ||
+  //     (ais->gamestate.player == PLAYER2 && ais->gamestate.player2_walls == 0))
+  // {
+  //   ais->nextmoves.wall_size = 0;
+  //   return;
+  // }
+  // else if (ais->nextmoves.wall_size == 0)
+  // {
+  //     AIStage_generateWallMoves(ais);
+  //     return;
+  // }
+
   for (int i = 5 + ais->nextmoves.wall_size - 1; i >= 5; i--)
   {
     move = &(ais->nextmoves.moves[i]);
@@ -295,6 +330,35 @@ AIStage_evaluateGameState(aistage_t *ais, gamehistory_t *history)
   // path_t p1path;
   // path_t p2path;
 
+  if (ais->gamestate.board.player1 >= PLAYER1_TARGET)
+  {
+    ais->stage_score_defined = true;
+    if (ais->my_player == PLAYER1)
+    {
+      ais->stage_score = WIN_SCORE;
+      return WIN_SCORE;
+    }
+    else
+    {
+      ais->stage_score = -WIN_SCORE;
+      return -WIN_SCORE;
+    }
+  }
+  else if (ais->gamestate.board.player2 <= PLAYER2_TARGET)
+  {
+    ais->stage_score_defined = true;
+    if (ais->my_player == PLAYER2)
+    {
+      ais->stage_score = WIN_SCORE;
+      return WIN_SCORE;
+    }
+    else
+    {
+      ais->stage_score = -WIN_SCORE;
+      return -WIN_SCORE;
+    }
+  }
+
   Search_bfs_exists(&sr, &(ais->gamestate.board), PLAYER1, ais->gamestate.board.player1);
   if (sr.count == 0)
   {
@@ -306,7 +370,7 @@ AIStage_evaluateGameState(aistage_t *ais, gamehistory_t *history)
   {
     // p1path = *(sr->shortest_paths);
     // p1pathlen = sr.shortest_paths[0].length;
-    p1pathlen = sr.shortest_length;
+    p1pathlen = PATH_SCORE * sr.shortest_length;
   }
 
   SearchResult_reset(&sr);
@@ -321,7 +385,7 @@ AIStage_evaluateGameState(aistage_t *ais, gamehistory_t *history)
   {
     // p2path = *(sr->shortest_paths);
     // p2pathlen = p1pathlen = sr.shortest_paths[0].length;;
-    p2pathlen = sr.shortest_length;
+    p2pathlen = PATH_SCORE * sr.shortest_length;
   }
 
   #ifdef DEBUGAI
@@ -499,6 +563,7 @@ minimax(aistage_t *ais, bestmoves_t *best, gamehistory_t *history, gamemove_t *m
 void
 alphabeta(aistage_t *ais, bestmoves_t *best, gamehistory_t *history, gamemove_t *move, int lookahead, int alpha, int beta, bool maximizer)
 {
+  pthread_testcancel();
   #ifdef DEBUGAI
     printf("Starting alphabeta: ");
     printf("Lookahead %i!\n", lookahead);
@@ -546,6 +611,13 @@ alphabeta(aistage_t *ais, bestmoves_t *best, gamehistory_t *history, gamemove_t 
       if (i < 5 && i >= ais->nextmoves.walk_size)
       {
         continue;
+      }
+
+      if (i >= 5 &&
+          ((ais->gamestate.player == PLAYER1 && ais->gamestate.player1_walls == 0) ||
+           (ais->gamestate.player == PLAYER2 && ais->gamestate.player2_walls == 0)))
+      {
+        break;
       }
       // GameMove_clone(&(ais->nextmoves.moves[i]), &currmove);
       currmove = &(ais->nextmoves.moves[i]);
@@ -604,11 +676,8 @@ alphabeta(aistage_t *ais, bestmoves_t *best, gamehistory_t *history, gamemove_t 
   }
 }
 
-
-
-
 void
-AIStage_bestMove(aistage_t *ais, gamemove_t *bestmove, gamehistory_t *history, int lookahead, int timeout)
+_bestMove(aistage_t *ais, gamemove_t **bestmove, gamehistory_t *history, int lookahead)
 {
   #ifdef DEBUGAI
     printf("Calculating best moves for player %i\n", ais->my_player);
@@ -616,13 +685,112 @@ AIStage_bestMove(aistage_t *ais, gamemove_t *bestmove, gamehistory_t *history, i
   #endif
   bestmoves_t best;
   BestMoves_init(&best);
-
   // minimax(ais, best, history, NULL, levels * 2, ais->my_player);
-  struct itimerval timer;
-  timer.it_value.tv_sec = 10;
-  timer.it_value.tv_usec = 0;
-  timer.it_interval.tv_sec = 0;
-  timer.it_interval.tv_usec = 0;
-  setitimer (ITIMER_VIRTUAL, &timer, 0);
   alphabeta(ais, &best, history, NULL, lookahead, BLOCKED_SCORE - 1, -BLOCKED_SCORE + 1, true);
+
+  if (best.size == 0)
+  {
+    printf("Error: no best move?\n");
+    *(bestmove) = NULL;
+  }
+  else if (best.size == 1)
+  {
+    printf("Found one best move.\n");
+    GameMove_clone(&(best.moves[0]), *bestmove);
+  }
+  else
+  {
+    printf("Selecting a random move from %i best moves.\n", best.size);
+    srand((unsigned int)time(NULL));
+    GameMove_clone(&(best.moves[rand() % best.size]), *bestmove);
+  }
+}
+
+void *
+bestMoveThread(void *data)
+{
+  int oldtype1;
+  int oldtype2;
+  pthread_setcancelstate(PTHREAD_CANCEL_ENABLE, &oldtype1);
+  pthread_setcanceltype(PTHREAD_CANCEL_ASYNCHRONOUS, &oldtype2);
+  aithreadarg_t *args = (aithreadarg_t *)data;
+
+  int lookahead = 3;
+  while (true)
+  {
+    pthread_testcancel();
+    _bestMove(args->ais, &(args->bestmove), args->history, lookahead);
+    lookahead += 2;
+    *(args->last_lookahead) = lookahead;
+    if (args->bestmove == NULL) break;
+  }
+  pthread_cond_signal(&done);
+  return NULL;
+}
+
+void
+AIStage_bestMove(aistage_t *ais, gamehistory_t *history, gamemove_t *bestmove, int *lookahead)
+{
+  struct timespec max_wait;
+  memset(&max_wait, 0, sizeof(max_wait));
+
+  /* wait at most 2 seconds */
+  max_wait.tv_sec = CALCULATION_TIMEOUT_SEC;
+  max_wait.tv_nsec = CALCULATION_TIMEOUT_NSEC;
+
+  struct timespec abs_time;
+  pthread_t tid;
+  int err;
+
+  pthread_mutex_lock(&calculating);
+
+  // OS X workaround: http://stackoverflow.com/questions/5167269/clock-gettime-alternative-in-mac-os-x
+  /* pthread cond_timedwait expects an absolute time to wait until */
+  #ifdef __MACH__ // OS X does not have clock_gettime, use clock_get_time
+  clock_serv_t cclock;
+  mach_timespec_t mts;
+  host_get_clock_service(mach_host_self(), CALENDAR_CLOCK, &cclock);
+  clock_get_time(cclock, &mts);
+  mach_port_deallocate(mach_task_self(), cclock);
+  abs_time.tv_sec = mts.tv_sec;
+  abs_time.tv_nsec = mts.tv_nsec;
+
+  #else
+  clock_gettime(CLOCK_REALTIME, &abs_time);
+  #endif
+  abs_time.tv_sec += max_wait.tv_sec;
+  abs_time.tv_nsec += max_wait.tv_nsec;
+
+  aithreadarg_t threadarg;
+  threadarg.ais = ais;
+  threadarg.history = history;
+  threadarg.bestmove = bestmove;
+  threadarg.last_lookahead = lookahead;
+
+  printf("Creating thread.\n");
+  pthread_create(&tid, NULL, bestMoveThread, &threadarg);
+
+  while (true)
+  {
+    err = pthread_cond_timedwait(&done, &calculating, &abs_time);
+
+    if (err == ETIMEDOUT)
+    {
+      fprintf(stderr, "%s: calculation timed out\n", __func__);
+      printf("Timeout done.\n");
+      pthread_cancel(tid);
+      break;
+    }
+    else if (err == 0)
+    {
+      break;
+    }
+  }
+
+  void * t = NULL;
+
+  pthread_join(tid, &t);
+  pthread_mutex_unlock(&calculating);
+
+
 }

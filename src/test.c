@@ -229,14 +229,19 @@ main()
     printf("done setup.\n");
   #endif
 
+  gamemove_t bestmove;
+  int lookahead;
+
   timer_start(&bestmove_timer3);
   // AIStage_bestMoves(&ai, &bm, &history, &ms, 3);
-  AIStage_bestMoves(&ai, &bm, &history, 1);
+  AIStage_bestMove(&ai, &history, &bestmove, &lookahead);
   timer_pause(&bestmove_timer3);
-  printf("4 Moves: %ldms\n", timer_delta_ms(&bestmove_timer3));
-  printf("Number of results: %i\n", bm.size);
-  printf("Best score: %i\n", bm.score);
-  BestMoves_print(&bm);
+  printf("Calc Moves: %ldms\n", timer_delta_ms(&bestmove_timer3));
+  // printf("Number of results: %i\n", bm.size);
+  // printf("Best score: %i\n", bm.score);
+  printf("Best move is: ");
+  GameMove_print(&bestmove);
+  printf("\n");
 
   return 0;
 }
