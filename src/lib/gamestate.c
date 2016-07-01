@@ -113,6 +113,7 @@ GameState_applyMove(gamestate_t *state, gamemove_t *move, bool force)
 moveresult_t
 GameState_moveCurrentPlayer(gamestate_t *state, unsigned char r, char c, bool force)
 {
+  // printf("Current player: %i\n", state->player);
   moveresult_t res;
   if (force) res = OK;
   else res = GameState_legalMove(state, state->player, r, c);

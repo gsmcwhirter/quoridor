@@ -579,7 +579,7 @@ alphabeta(aistage_t *ais, bestmoves_t *best, gamehistory_t *history, gamemove_t 
   #endif
 
   aistage_t next;
-  gamemove_t *currmove;
+  gamemove_t currmove;
 
   bestmoves_t results;
   BestMoves_init(&results);
@@ -627,26 +627,26 @@ alphabeta(aistage_t *ais, bestmoves_t *best, gamehistory_t *history, gamemove_t 
       {
         break;
       }
-      // GameMove_clone(&(ais->nextmoves.moves[i]), &currmove);
-      currmove = &(ais->nextmoves.moves[i]);
+      GameMove_clone(&(ais->nextmoves.moves[i]), &currmove);
+      //currmove = &(ais->nextmoves.moves[i]);
       #ifdef DEBUGAI
         printf("\tMove under consideration:\n");
         GameMove_print(currmove);
         printf("\n");
         printf("\tAdvancing stage.\n");
       #endif
-      AIStage_advance(ais, &next, currmove);
+      AIStage_advance(ais, &next, &currmove);
       #ifdef DEBUGAI
         printf("\trecursing with alpha=%i, beta=%i.\n", alpha, beta);
       #endif
-      alphabeta(&next, &results, history, currmove, lookahead-1, alpha, beta, maximizer ? false : true);
+      alphabeta(&next, &results, history, &currmove, lookahead-1, alpha, beta, maximizer ? false : true);
 
       #ifdef DEBUGAI
         printf("Alphabeta: returned from recursion.\n");
       #endif
-      currmove->score = results.score;
+      currmove.score = results.score;
       #ifdef DEBUGAI
-        printf("\tScore of this move: %i\n", currmove->score);
+        printf("\tScore of this move: %i\n", currmove.score);
       #endif
 
       // if (lookahead % 2 == 0)
@@ -655,8 +655,8 @@ alphabeta(aistage_t *ais, bestmoves_t *best, gamehistory_t *history, gamemove_t 
         #ifdef DEBUGAI
           printf("\tI am the current player, so maximizing.\n");
         #endif
-        alpha = (alpha > currmove->score) ? alpha : currmove->score;
-        minimax_maximize(best, currmove);
+        alpha = (alpha > currmove.score) ? alpha : currmove.score;
+        minimax_maximize(best, &currmove);
         if (beta <= alpha)
         {
           #ifdef DEBUGAI
@@ -670,8 +670,8 @@ alphabeta(aistage_t *ais, bestmoves_t *best, gamehistory_t *history, gamemove_t 
         #ifdef DEBUGAI
           printf("\tI am NOT the current player, so minimizing.\n");
         #endif
-        beta = (beta < currmove->score) ? beta : currmove->score;
-        minimax_minimize(best, currmove);
+        beta = (beta < currmove.score) ? beta : currmove.score;
+        minimax_minimize(best, &currmove);
         if (beta <= alpha)
         {
           #ifdef DEBUGAI
@@ -723,7 +723,7 @@ bestMoveThread(void *data)
   pthread_setcanceltype(PTHREAD_CANCEL_ASYNCHRONOUS, &oldtype2);
   aithreadarg_t *args = (aithreadarg_t *)data;
 
-  int lookahead = 3;
+  int lookahead = 2;
   while (true)
   {
     printf("Looking ahead %i moves.\n", lookahead);

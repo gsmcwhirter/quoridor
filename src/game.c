@@ -22,13 +22,23 @@ bool autoplay = false;
 char* history = "";
 char* history_delim = ",";
 
+int player = 3;
+
 char buffer[40];
+
+static void
+playerArgument(command_t *self)
+{
+  if (*(self->arg) < '1' || *(self->arg) > '2') return;
+  printf("player: %i\n", *(self->arg) - '1' + 1);
+  player = *(self->arg) - '1' + 1;
+}
 
 static void
 setAutoPlay(command_t *self)
 {
   UNUSED(self);
-  printf("verbose: enabled\n");
+  printf("autoplay: enabled\n");
   autoplay = true;
 }
 
@@ -154,6 +164,9 @@ repl()
   gamehistory_t *gamehistory = malloc(sizeof(gamehistory_t));
   GameHistory_init(gamehistory, &gamestate);
 
+  moveresult_t result;
+  gamehistory_t *most_recent = NULL;
+
   size_t num_moves;
   char **moves;
 
@@ -171,32 +184,36 @@ repl()
 
   for (unsigned int i = 0; i < num_moves; i++)
   {
-    printf("Replaying move: %s\n", *(moves + i));
+    printf("Replaying move: %s...", *(moves + i));
     // playMove(&gamestate, &gamehistory, *(moves + i));
-    playMove(&gamestate, gamehistory, *(moves + i));
+    result = playMove(&gamestate, gamehistory, *(moves + i));
+    printf("%s\n", moveDescription(result));
   }
 
   char *move;
   player_t as_player;
-  while (true)
+  if (player == 1) as_player = PLAYER1;
+  else if (player == 2) as_player = PLAYER2;
+  else
   {
-    printf("\nAre you playing as player 1 or player 2? ");
-    move = trim(case_lower(read_line(buffer, 40, stdin)));
+    while (true)
+    {
+      printf("\nAre you playing as player 1 or player 2? ");
+      move = trim(case_lower(read_line(buffer, 40, stdin)));
 
-    if (!(strlen(move) == 1 && (*(move) == '1' || *(move) == '2')))
-    {
-      printf("Please select whether you are playing as player 1 or player 2.\n");
-    }
-    else
-    {
-      as_player = *(move) - '1' + 1;
-      printf("\n");
-      break;
+      if (!(strlen(move) == 1 && (*(move) == '1' || *(move) == '2')))
+      {
+        printf("Please select whether you are playing as player 1 or player 2.\n");
+      }
+      else
+      {
+        as_player = *(move) - '1' + 1;
+        printf("Okay, playing as player %i\n", as_player);
+        break;
+      }
     }
   }
 
-  moveresult_t result;
-  gamehistory_t *most_recent = NULL;
   while (true)
   {
     printf("\n");
@@ -295,6 +312,14 @@ repl()
       else if (GameState_isGameOver(&gamestate))
       {
         printf("Game Over!\n");
+        printf("\n");
+        // term_clear("screen");
+        most_recent = GameHistory_last(gamehistory);
+        if (most_recent != NULL && most_recent->move_set)
+          GameState_print(&gamestate, as_player, &(most_recent->move));
+        else
+          GameState_print(&gamestate, as_player, NULL);
+        printf("\n");
         break;
       }
     }
@@ -312,6 +337,7 @@ main(int argc, char **argv)
   command_option(&cmd, "-z", "--autoplay", "enable autoplay", setAutoPlay);
   command_option(&cmd, "-H", "--history [arg]", "history to play-back (default \"\")", loadHistory);
   command_option(&cmd, "-d", "--delimeter [arg]", "history delimeter (default \",\")", historyDelimeter);
+  command_option(&cmd, "-p", "--player [arg]", "player to run as (useful for -z); asks on done", playerArgument);
   command_parse(&cmd, argc, argv);
 
   repl();
